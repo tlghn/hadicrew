@@ -2,6 +2,8 @@
 # Önünde Cloudflare Access (ekip e-postaları, tek kullanımlık kod) vardır; bu başlıklar ikinci savunma hattıdır.
 # script-src 'unsafe-inline': FlutterFire web eklentileri Firebase JS SDK'sını satır içi <script type="module"> ile yükler
 # (sürüme göre değişen içerik). Arayüz tuval üstünde çizildiğinden HTML enjeksiyon yüzeyi yoktur.
+# connect-src *.klipy.com: GIF seçici KLIPY API'sine (api.klipy.com) tarayıcı fetch'iyle gider ve CanvasKit GIF görsellerini
+# (static.klipy.com CDN) da fetch ile indirir; img-src yetmez. Eksikken seçici "GIF'ler yüklenemedi. İnternet bağlantını kontrol et." diyordu.
 
 /*
   X-Robots-Tag: noindex, nofollow, noarchive
@@ -11,5 +13,5 @@
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cross-Origin-Opener-Policy: same-origin-allow-popups
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://www.google.com https://apis.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app https://www.google.com https://fonts.gstatic.com https://www.gstatic.com https://*.basemaps.cartocdn.com wss://*.firebaseio.com; frame-src https://www.google.com https://www.recaptcha.net https://hadi-a0db3.firebaseapp.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://www.google.com https://apis.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app https://www.google.com https://fonts.gstatic.com https://www.gstatic.com https://*.basemaps.cartocdn.com https://*.klipy.com wss://*.firebaseio.com; frame-src https://www.google.com https://www.recaptcha.net https://hadi-a0db3.firebaseapp.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'
   Cache-Control: no-cache
