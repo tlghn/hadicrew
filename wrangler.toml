@@ -1,0 +1,4 @@
+# Cloudflare Pages (ücretsiz plan) — doğrudan yükleme. Derleme GitHub Actions'ta ya da bilgisayarda yapılır.
+name = "hadi-crew"
+pages_build_output_dir = "build/web"
+compatibility_date = "2026-10-01"

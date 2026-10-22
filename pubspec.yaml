@@ -1,0 +1,56 @@
+name: hadi_crew
+description: "HADİ Crew — ekip uygulaması (operasyon, moderasyon, incelemeler, destek, raporlar). Flutter Web, Cloudflare Pages."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  # Kurucunun bilgisayarındaki Flutter 3.41 (Dart 3.11) ile aynı.
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  # Uygulamanın paylaşılan kodu (veri katmanı, tema, ortak bileşenler). Klasörler yan yana: D:\hadimobile, D:\hadicrew.
+  hadi:
+    path: ../hadimobile
+  # Sürümler hadi paketinin kısıtlarıyla çözülür ("any"): iki proje uyumlu sürümleri kullanır.
+  audioplayers: any
+  cached_network_image: any
+  cloud_firestore: any
+  cloud_functions: any
+  cupertino_icons: any
+  file_picker: any
+  firebase_auth: any
+  firebase_core: any
+  firebase_storage: any
+  flutter_cache_manager: any
+  go_router: any
+  image_picker: any
+  path_provider: any
+  share_plus: any
+  url_launcher: any
+  video_player: any
+  video_thumbnail: any
+
+dependency_overrides:
+  # hadi ile aynı (dmrtd / livekit uyumu).
+  pointycastle: ^4.0.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  # Uygulamanın yazı tipi (Bricolage Grotesque, SIL OFL 1.1; hadimobile/assets/fonts kopyası).
+  fonts:
+    - family: Bricolage
+      fonts:
+        - asset: assets/fonts/BricolageGrotesque-Regular.ttf
+        - asset: assets/fonts/BricolageGrotesque-Bold.ttf
+          weight: 700
