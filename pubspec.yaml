@@ -30,6 +30,7 @@ dependencies:
   flutter_cache_manager: any
   go_router: any
   web: any
+  pointer_interceptor: any
   image_picker: any
   path_provider: any
   share_plus: any
