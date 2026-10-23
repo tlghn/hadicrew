@@ -29,6 +29,7 @@ dependencies:
   firebase_storage: any
   flutter_cache_manager: any
   go_router: any
+  web: any
   image_picker: any
   path_provider: any
   share_plus: any

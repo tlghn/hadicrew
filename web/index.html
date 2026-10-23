@@ -10,12 +10,15 @@
   <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#17344F">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="HADİ Crew">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="application-name" content="HADİ Crew">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" href="favicon.png">
   <title>HADİ Crew</title>
-  <link rel="manifest" href="manifest.json">
+  <!-- Önünde Cloudflare Access var: manifest çerezle istenmezse giriş sayfasına yönlenir ve panel ana ekrana eklenemez. -->
+  <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
   <style>
     html, body { margin: 0; height: 100%; background: #FFF8F1; }
     #yukleniyor { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -24,6 +27,58 @@
 </head>
 <body>
   <div id="yukleniyor">HADİ Crew yükleniyor…</div>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Sürüm etiketi (tools/build.ps1 derlemede __HADI_BUILD__ yerine yazar): uygulama dosyaları etiketle istenir, önbellekteki
+    // eski kopya kullanılmaz (telefonda Ctrl+F5 gerekmez).
+    window.HADI_BUILD = '__HADI_BUILD__';
+    window.dartDeferredLibraryLoader = function (uri, ok, err) {
+      var s = document.createElement('script');
+      s.src = uri + (uri.indexOf('?') < 0 ? '?' : '&') + 'v=' + window.HADI_BUILD;
+      s.onload = function () { ok(); };
+      s.onerror = function (e) { err(e); };
+      document.head.appendChild(s);
+    };
+  </script>
+  <script>
+    // Ana ekrana ekleme (PWA) köprüsü — Dart tarafı: lib/app/pwa.dart, kart: lib/app/install_nudge.dart.
+    window.hadiPwa = (function () {
+      var deferred = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault(); // tarayıcının kendi şeridi yerine panelin kartı
+        deferred = e;
+        window.dispatchEvent(new Event('hadi-install-ready'));
+      });
+      window.addEventListener('appinstalled', function () { deferred = null; });
+      return {
+        canPrompt: function () { return deferred !== null; },
+        prompt: function () {
+          var d = deferred;
+          if (!d) return Promise.resolve('unavailable');
+          deferred = null;
+          d.prompt();
+          return d.userChoice.then(function (r) { return r.outcome; }, function () { return 'dismissed'; });
+        },
+        standalone: function () {
+          return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        },
+        isIos: function () {
+          var ua = navigator.userAgent;
+          return /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+      };
+    })();
+    if ('serviceWorker' in navigator) {
+      // Eski Flutter service worker'ı (uygulama dosyalarını önbelleğe alıp eski sürümü açtırıyordu) kaldırılır;
+      // yerine yalnızca çevrimdışı "bağlantı yok" sayfası için küçük sw.js kaydedilir (uygulama dosyalarını önbelleğe almaz).
+      navigator.serviceWorker.getRegistrations().then(function (rs) {
+        rs.forEach(function (r) {
+          var w = r.active || r.waiting || r.installing;
+          if (w && /flutter_service_worker/.test(w.scriptURL)) r.unregister();
+        });
+      }).catch(function () {});
+      window.addEventListener('load', function () { navigator.serviceWorker.register(new URL('sw.js', document.baseURI).href).catch(function () {}); });
+    }
+  </script>
+  <script src="flutter_bootstrap.js?v=__HADI_BUILD__" async></script>
 </body>
 </html>

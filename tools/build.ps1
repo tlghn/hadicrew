@@ -16,8 +16,13 @@ $wc = Get-Content -Raw -Encoding UTF8 "web_config.json" | ConvertFrom-Json
 if (-not $wc.FB_API_KEY -or -not $wc.FB_APP_ID -or -not $wc.FB_SENDER_ID) { throw "web_config.json boş: README › Kurulum › 0" }
 & $Flutter pub get
 if ($LASTEXITCODE -ne 0) { throw "pub get başarısız" }
-& $Flutter build web --release --no-web-resources-cdn --no-wasm-dry-run --dart-define-from-file=web_config.json
+$stamp = Get-Date -Format "yyyyMMddHHmmss"
+& $Flutter build web --release --no-web-resources-cdn --no-wasm-dry-run --dart-define-from-file=web_config.json --dart-define=HADI_BUILD=$stamp
 if ($LASTEXITCODE -ne 0) { throw "web derlemesi başarısız" }
+# Sürüm etiketi: index.html içindeki __HADI_BUILD__ yerine yazılır; hadi_build.txt açık panelin yeni sürümü fark etmesi için.
+$ix = Join-Path $root "build\web\index.html"; [IO.File]::WriteAllText($ix, [IO.File]::ReadAllText($ix).Replace("__HADI_BUILD__", $stamp))
+[IO.File]::WriteAllText((Join-Path $root "build\web\hadi_build.txt"), $stamp)
+if (Test-Path (Join-Path $root "build\web\flutter_service_worker.js")) { Remove-Item (Join-Path $root "build\web\flutter_service_worker.js") }
 Write-Host "Derleme hazır: $root\build\web"
 if ($Deploy) {
   npx --yes wrangler pages deploy build/web --project-name=hadi-crew --branch=main --commit-dirty=true

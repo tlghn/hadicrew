@@ -10,6 +10,8 @@ import 'package:hadi/data/demo_services.dart' show DemoApplicationService;
 import 'package:hadi/data/services.dart';
 
 import 'app/crew_app.dart';
+import 'app/install_nudge.dart';
+import 'app/update_check.dart';
 import 'app/web_options.dart';
 import 'ops/admin/applications_screen.dart' show decideApplicationFlow, openApplicationReview;
 
@@ -30,7 +32,7 @@ Future<void> main() async {
     await ThemeController.instance.load();
     final services = Services.demo();
     (services.applications as DemoApplicationService).approve(); // demo hesabı onaylı üye (kurucu) olsun
-    runApp(CrewApp(services: services));
+    runApp(UpdateCheck(bottomOffset: 92, child: InstallNudge(bottomOffset: 92, child: CrewApp(services: services))));
     return;
   }
   if (!CrewWebOptions.configured) {
@@ -39,5 +41,5 @@ Future<void> main() async {
   }
   await Firebase.initializeApp(options: CrewWebOptions.web);
   await ThemeController.instance.load();
-  runApp(CrewApp(services: Services.firebase()));
+  runApp(UpdateCheck(bottomOffset: 92, child: InstallNudge(bottomOffset: 92, child: CrewApp(services: Services.firebase()))));
 }

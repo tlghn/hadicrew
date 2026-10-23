@@ -15,3 +15,17 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://www.google.com https://apis.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app https://www.google.com https://fonts.gstatic.com https://www.gstatic.com https://*.basemaps.cartocdn.com https://*.klipy.com wss://*.firebaseio.com; frame-src https://www.google.com https://www.recaptcha.net https://hadi-a0db3.firebaseapp.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'
   Cache-Control: no-cache
+
+# Açık panelin yeni sürümü fark etmesi için sürüm etiketi (tools/build.ps1 yazar; lib/app/update_check.dart okur).
+/hadi_build.txt
+  ! Cache-Control
+  Cache-Control: no-store
+
+/manifest.json
+  Content-Type: application/manifest+json
+
+# Çevrimdışı sayfa service worker'ı: her açılışta yenisi denetlenir.
+/sw.js
+  ! Cache-Control
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /
