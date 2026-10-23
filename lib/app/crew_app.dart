@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hadi/core/capabilities.dart' show Capabilities;
 import 'package:hadi/core/push.dart' show rootMessengerKey;
 import 'package:hadi/core/session.dart';
+import 'package:hadi/core/web_url.dart' show WebPopupBackObserver;
 import 'package:hadi/core/theme_presets.dart' show ThemeController;
 import 'package:hadi/data/services.dart';
 import 'package:hadi/features/candidate/candidate_lobby.dart' show LobbyScreen;
@@ -31,6 +32,8 @@ class _CrewAppState extends State<CrewApp> {
   late final Session _session = Session(widget.services);
 
   late final GoRouter _router = GoRouter(
+    // Pencere / alt sayfa açıkken tarayıcının geri tuşu önce onu kapatır (hadi/core/web_url.dart).
+    observers: [WebPopupBackObserver()],
     refreshListenable: _session,
     redirect: (context, state) {
       // Bildirim bağlantıları (functions/src/crew_link.ts): eski uygulama yolları bölüme çevrilir.
