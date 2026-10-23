@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:flutter/material.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 
@@ -93,6 +94,8 @@ class _InstallNudgeState extends State<InstallNudge> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
+            child: PointerInterceptor(
+            intercepting: _show,
             child: IgnorePointer(
           ignoring: !_show,
           child: AnimatedSlide(
@@ -107,6 +110,7 @@ class _InstallNudgeState extends State<InstallNudge> {
           ),
         ),
           ),
+        ),
         ),
       ),
     ]);
