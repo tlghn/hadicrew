@@ -1,6 +1,7 @@
 // HADİ Crew
 // Kaynak: hadimobile/lib/features/events/member_events.dart (21 Ekim 2026'da HADİ Crew'e taşındı).
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart' show CrewListView, CrewCard, CrewEmpty, crewCanvas, crewCardColor;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hadi/core/format.dart';
@@ -30,8 +31,8 @@ class _ProposalCard extends StatelessWidget {
     final c = _statusColor(p);
     final reason = p.isDraft ? p.rejectReason : p.note;
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: HadiColors.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: HadiColors.line)),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: crewCardColor(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
@@ -201,6 +202,7 @@ class _MemberEventsAdminScreenState extends State<MemberEventsAdminScreen> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
+        backgroundColor: crewCanvas(context),
         appBar: AppBar(
           title: const Text('Üye etkinlikleri'),
           bottom: TabBar(isScrollable: true, tabAlignment: TabAlignment.center, tabs: [
@@ -214,7 +216,7 @@ class _MemberEventsAdminScreenState extends State<MemberEventsAdminScreen> {
             : d == null
                 ? const ListSkeleton(count: 6)
                 : TabBarView(children: [
-                    _list(d.pending, 'Onay bekleyen üye etkinliği yok.', (p) => [
+                    _list(d.pending, 'Onay bekleyen üye etkinliği yok', (p) => [
                           FilledButton(onPressed: _busy.contains(p.id) ? null : () => _approve(p), child: const Text('Onayla')),
                           OutlinedButton(
                             onPressed: _busy.contains(p.id) ? null : () => _reject(p),
@@ -222,7 +224,7 @@ class _MemberEventsAdminScreenState extends State<MemberEventsAdminScreen> {
                             child: const Text('Reddet'),
                           ),
                         ]),
-                    _list(d.suggestions, 'Henüz öneri yok.', (p) => [
+                    _list(d.suggestions, 'Henüz öneri yok', (p) => [
                           PopupMenuButton<String>(
                             enabled: !_busy.contains(p.id),
                             onSelected: (v) => _suggestion(p, v),
@@ -235,7 +237,7 @@ class _MemberEventsAdminScreenState extends State<MemberEventsAdminScreen> {
                             child: const Chip(avatar: Icon(Icons.edit_rounded, size: 16), label: Text('Durumu değiştir')),
                           ),
                         ]),
-                    _list(d.recent, 'Henüz karar yok.', (p) => [
+                    _list(d.recent, 'Henüz karar yok', (p) => [
                           if (p.eventId != null) FilledButton.tonal(onPressed: () => context.push('/etkinlik/${p.eventId!}?kaynak=uye'), child: const Text('Etkinliği aç')),
                         ]),
                   ]),
@@ -245,13 +247,9 @@ class _MemberEventsAdminScreenState extends State<MemberEventsAdminScreen> {
 
   Widget _list(List<EventProposal> items, String empty, List<Widget> Function(EventProposal) actions) => RefreshIndicator(
         onRefresh: _load,
-        child: items.isEmpty
-            ? ListView(children: [Padding(padding: const EdgeInsets.only(top: 80), child: Center(child: Text(empty, style: TextStyle(color: HadiColors.ink3))))])
-            : ListView.separated(
-                padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + MediaQuery.paddingOf(context).bottom),
-                itemCount: items.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (_, i) => _ProposalCard(p: items[i], actions: actions(items[i])),
-              ),
+        child: CrewListView(maxWidth: 920, children: [
+          if (items.isEmpty) CrewCard(child: CrewEmpty(icon: Icons.event_note_outlined, title: empty)),
+          for (final p in items) Padding(padding: const EdgeInsets.only(bottom: 12), child: _ProposalCard(p: p, actions: actions(p))),
+        ]),
       );
 }

@@ -8,6 +8,7 @@ import 'package:hadi/core/format.dart';
 import 'package:hadi/core/money.dart';
 import 'package:hadi/core/session.dart';
 import 'package:hadi/data/models.dart' show AppFailure;
+import 'package:hadi/panel_ui/crew_ui.dart' show crewCardColor;
 import 'package:hadi/theme/hadi_colors.dart';
 
 /// Mağaza yönetimini görebilir mi (kurucu ya da `store.manage`).
@@ -122,9 +123,9 @@ class StoreSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 14, bottom: 6),
+        padding: const EdgeInsets.only(top: 18, bottom: 8),
         child: Row(children: [
-          Expanded(child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15))),
+          Expanded(child: Text(text, style: Theme.of(context).textTheme.titleMedium)),
           ?trailing,
         ]),
       );
@@ -132,7 +133,7 @@ class StoreSectionTitle extends StatelessWidget {
 
 /// Yuvarlak köşeli kart.
 class StoreCard extends StatelessWidget {
-  const StoreCard({super.key, required this.child, this.padding = const EdgeInsets.all(14), this.color});
+  const StoreCard({super.key, required this.child, this.padding = const EdgeInsets.all(16), this.color});
   final Widget child;
   final EdgeInsets padding;
   final Color? color;
@@ -141,9 +142,9 @@ class StoreCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: padding,
         decoration: BoxDecoration(
-          color: color ?? HadiColors.card,
+          color: color ?? crewCardColor(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: HadiColors.line),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: child,
       );

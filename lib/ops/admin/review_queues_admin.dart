@@ -3,6 +3,7 @@
 //   • Kahve güvenlik incelemesi (yapay zekânın risk gördüğü Kahve Eşleşmesi üyeleri) — `kahve.safety`
 // Kurucular her zaman görür. Sunucu: functions/src/address_verification.ts, functions/src/kahve_profile.ts.
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart' show CrewMaxWidth;
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -18,7 +19,8 @@ String _when(DateTime? d) => d == null
     ? ''
     : '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
-Widget _wrap(bool embedded, String title, Widget body) => embedded ? body : Scaffold(appBar: AppBar(title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis)), body: body);
+Widget _wrap(bool embedded, String title, Widget body) =>
+    embedded ? body : Scaffold(appBar: AppBar(title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis)), body: CrewMaxWidth(maxWidth: 900, padded: false, child: body));
 
 Widget _empty(String text) => ListView(children: [
       Padding(padding: const EdgeInsets.all(40), child: Text(text, textAlign: TextAlign.center, style: TextStyle(color: HadiColors.ink2))),

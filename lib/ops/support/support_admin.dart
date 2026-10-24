@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hadi/panel_ui/crew_ui.dart' show CrewMaxWidth, crewCanvas;
 
 import 'support_admin_desk.dart' show SupportDeskAdmin;
 
@@ -11,7 +12,12 @@ class SupportTicketsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: const Text('Destek masası')), body: const SupportDeskAdmin());
+    // Genişte talep listesi en fazla 1040 px, ortada (satırlar ekran boyu uzamasın).
+    return Scaffold(
+      backgroundColor: crewCanvas(context),
+      appBar: AppBar(title: const Text('Destek masası')),
+      body: const CrewMaxWidth(maxWidth: 1040, padded: false, child: SupportDeskAdmin()),
+    );
   }
 }
 

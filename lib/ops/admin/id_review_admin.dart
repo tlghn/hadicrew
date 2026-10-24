@@ -5,6 +5,7 @@
 // onay ya da retten sonra sunucuda silinir. Sunucu: functions/src/identity.ts.
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart' show CrewMaxWidth;
 
 import 'package:hadi/data/models.dart';
 import 'package:hadi/theme/hadi_colors.dart';
@@ -246,6 +247,6 @@ class _IdReviewAdminTabState extends State<IdReviewAdminTab> {
         ),
       ),
     ]);
-    return widget.embedded ? body : Scaffold(appBar: AppBar(title: const Text('Kimlik doğrulamaları', maxLines: 1, overflow: TextOverflow.ellipsis)), body: body);
+    return widget.embedded ? body : Scaffold(appBar: AppBar(title: const Text('Kimlik doğrulamaları', maxLines: 1, overflow: TextOverflow.ellipsis)), body: CrewMaxWidth(maxWidth: 900, padded: false, child: body));
   }
 }

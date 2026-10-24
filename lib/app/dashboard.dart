@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hadi/core/session.dart';
 import 'package:hadi/data/models.dart' show AppFailure;
+import 'package:hadi/panel_ui/crew_ui.dart' show crewCanvas, crewCardColor;
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/instant.dart' show InlineError;
 
@@ -64,6 +65,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final s = SessionScope.of(context);
     return Scaffold(
+      backgroundColor: crewCanvas(context),
       appBar: AppBar(
         title: const Text('Pano'),
         actions: [
@@ -163,6 +165,7 @@ class _Body extends StatelessWidget {
             ),
           ]),
           const SizedBox(height: 10),
+          _Charts(children: [
           _ChartCard(
             title: 'Aktif üyeler',
             child: LineChart(days: series.days, lines: [
@@ -189,6 +192,7 @@ class _Body extends StatelessWidget {
               ChartLine(name: 'Şikâyet', color: HadiColors.error, values: series.of('reports')),
             ]),
           ),
+          ]),
           Text('Günlük toplamlar her gece hesaplanır; bugün kısmidir. Kişi düzeyinde veri gösterilmez.',
               style: text.bodySmall?.copyWith(color: HadiColors.ink3)),
         ],
@@ -253,23 +257,27 @@ class _QueueTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final busy = (count ?? 0) > 0;
     final cs = Theme.of(context).colorScheme;
+    final hot = HadiColors.text(HadiColors.heyecan);
     return Material(
-      color: busy ? HadiColors.heyecan.withValues(alpha: .10) : cs.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
+      color: crewCardColor(context),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: busy ? Color.lerp(cs.outlineVariant, HadiColors.heyecan, .45)! : cs.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: () => openSection(context, section),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Icon(section.icon, size: 20, color: busy ? HadiColors.text(HadiColors.heyecan) : HadiColors.ink3),
+              Icon(section.icon, size: 20, color: busy ? hot : HadiColors.ink3),
               const Spacer(),
               Icon(Icons.chevron_right_rounded, size: 18, color: HadiColors.ink3),
             ]),
-            const SizedBox(height: 8),
-            Text(_n(count), style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: busy ? HadiColors.ink : HadiColors.ink3, height: 1)),
-            const SizedBox(height: 4),
+            const SizedBox(height: 10),
+            Text(_n(count), style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: busy ? hot : HadiColors.ink3, height: 1)),
+            const SizedBox(height: 6),
             Text(section.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w700, color: HadiColors.ink2, fontSize: 13)),
           ]),
         ),
@@ -290,7 +298,11 @@ class _StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerLow, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: crewCardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(icon, size: 20, color: HadiColors.text(color)),
         const SizedBox(height: 8),
@@ -303,6 +315,22 @@ class _StatTile extends StatelessWidget {
   }
 }
 
+/// Grafikler: genişte iki sütun, telefonda alt alta.
+class _Charts extends StatelessWidget {
+  const _Charts({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, c) {
+        final two = c.maxWidth >= 860;
+        final w = two ? (c.maxWidth - 12) / 2 : c.maxWidth;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Wrap(spacing: 12, runSpacing: 12, children: [for (final x in children) SizedBox(width: w, child: x)]),
+        );
+      });
+}
+
 class _ChartCard extends StatelessWidget {
   const _ChartCard({required this.title, required this.child});
   final String title;
@@ -310,12 +338,11 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: HadiColors.line),
+          color: crewCardColor(context),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
@@ -351,8 +378,9 @@ class _Skeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme.surfaceContainerLow;
-    Widget box(double h) => Container(height: h, decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(16)));
+    final c = crewCardColor(context);
+    final line = Theme.of(context).colorScheme.outlineVariant;
+    Widget box(double h) => Container(height: h, decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(16), border: Border.all(color: line)));
     return ListView(padding: const EdgeInsets.all(16), children: [
       box(34),
       const SizedBox(height: 18),

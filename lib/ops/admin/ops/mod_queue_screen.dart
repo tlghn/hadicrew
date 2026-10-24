@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 
 import 'package:hadi/core/service_switches.dart';
 import 'package:hadi/data/models.dart' show AppFailure;
+import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/theme/hadi_icons.dart';
 import 'package:hadi/widgets/auto_marquee_text.dart';
@@ -33,6 +34,7 @@ class ModQueueScreen extends StatelessWidget {
           return DefaultTabController(
             length: 2,
             child: Scaffold(
+              backgroundColor: crewCanvas(context),
               appBar: AppBar(
                 title: const AutoMarqueeText('Moderasyon kuyruğu'),
                 bottom: off ? null : const TabBar(tabs: [Tab(text: 'Kuyruk'), Tab(text: 'İtirazlar')]),
@@ -61,6 +63,13 @@ class _OffNote extends StatelessWidget {
           ]),
         ),
       );
+}
+
+/// Liste kenar boşluğu: genişte içerik en fazla 920 px, ortada; telefonda 16 px.
+EdgeInsets _listPad(BuildContext context, double w) {
+  final g = CrewSpace.gutter(context);
+  final side = w > 920 + 2 * g ? (w - 920) / 2 : g;
+  return EdgeInsets.fromLTRB(side, 16, side, 24 + MediaQuery.paddingOf(context).bottom);
 }
 
 Color _sevColor(String s) => switch (s) { 'high' => HadiColors.error, 'medium' => HadiColors.heyecan, _ => HadiColors.aktivite };
@@ -161,7 +170,7 @@ class _QueueTabState extends State<_QueueTab> with AutomaticKeepAliveClientMixin
     final sla = OpsApi.map(d['slaHours']);
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView(padding: EdgeInsets.fromLTRB(12, 8, 12, 24 + MediaQuery.paddingOf(context).bottom), children: [
+      child: LayoutBuilder(builder: (context, cons) => ListView(padding: _listPad(context, cons.maxWidth), children: [
         if (_busy) const LinearProgressIndicator(minHeight: 2),
         Wrap(spacing: 8, runSpacing: 8, children: [
           _Stat(label: 'Açık', value: '${st['open'] ?? 0}', color: HadiColors.aktivite),
@@ -197,7 +206,7 @@ class _QueueTabState extends State<_QueueTab> with AutomaticKeepAliveClientMixin
             child: Center(child: Text('Kuyruk boş. 🎉', style: TextStyle(color: HadiColors.ink3, fontSize: 16))),
           ),
         for (final it in items) _ItemCard(item: it, now: now, onDecide: () => _decide(it), onClaim: () => _claim(it)),
-      ]),
+      ])),
     );
   }
 }
@@ -210,7 +219,11 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         constraints: const BoxConstraints(minWidth: 92),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(color: HadiColors.tint(color), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+          color: crewCardColor(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
           Text(value, style: TextStyle(color: HadiColors.text(color), fontWeight: FontWeight.w900, fontSize: 17)),
           Text(label, style: TextStyle(color: HadiColors.ink2, fontSize: 11.5)),
@@ -236,9 +249,14 @@ class _ItemCard extends StatelessWidget {
     final reasons = [for (final r in (item['reasons'] as List? ?? const [])) '$r'];
     final claimed = item['claimedName'] as String?;
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
+      color: crewCardColor(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: overdue ? Color.lerp(Theme.of(context).colorScheme.outlineVariant, HadiColors.error, .45)! : Theme.of(context).colorScheme.outlineVariant),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             _Pill(text: _sevLabel(sev), color: _sevColor(sev)),
@@ -292,20 +310,21 @@ class _ItemCard extends StatelessWidget {
               ),
             ]),
           ],
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(
-              child: OutlinedButton.icon(
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(spacing: CrewSpace.sm, runSpacing: CrewSpace.sm, alignment: WrapAlignment.end, children: [
+              OutlinedButton.icon(
                 onPressed: item['source'] == 'auto' ? null : onClaim,
                 icon: HadiIcon(claimed == null ? Icons.back_hand_outlined : Icons.person_off_outlined, size: 18),
-                label: AutoMarqueeText(claimed == null ? 'Üstlen' : 'Bırak ($claimed)'),
+                label: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 200),
+                  child: Text(claimed == null ? 'Üstlen' : 'Bırak ($claimed)', maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: FilledButton.icon(onPressed: onDecide, icon: const HadiIcon(Icons.gavel_rounded, size: 18), label: const Text('Karar ver')),
-            ),
-          ]),
+              FilledButton.icon(onPressed: onDecide, icon: const HadiIcon(Icons.gavel_rounded, size: 18), label: const Text('Karar ver')),
+            ]),
+          ),
         ]),
       ),
     );
@@ -543,7 +562,7 @@ class _AppealsTabState extends State<_AppealsTab> with AutomaticKeepAliveClientM
     if (items == null) return _err != null ? InlineError(message: _err!, onRetry: _load) : const ListSkeleton(padding: EdgeInsets.all(12));
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView(padding: EdgeInsets.fromLTRB(12, 8, 12, 24 + MediaQuery.paddingOf(context).bottom), children: [
+      child: LayoutBuilder(builder: (context, cons) => ListView(padding: _listPad(context, cons.maxWidth), children: [
         Text('İtirazı, kararı verenden farklı bir Sistem Moderatörü ya da kurucu sonuçlandırır (dört göz).', style: TextStyle(color: HadiColors.ink3, fontSize: 12.5)),
         const SizedBox(height: 8),
         if (items.isEmpty) Padding(padding: const EdgeInsets.only(top: 60), child: Center(child: Text('Açık itiraz yok.', style: TextStyle(color: HadiColors.ink3)))),
@@ -578,7 +597,7 @@ class _AppealsTabState extends State<_AppealsTab> with AutomaticKeepAliveClientM
               ]),
             ),
           ),
-      ]),
+      ])),
     );
   }
 }

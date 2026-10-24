@@ -1,8 +1,8 @@
 // HADİ — Yönetim › Yolculuk anlaşmazlıkları (/yonetim/yolculuklar; rides.ts disputes / resolve).
 // Sürücü ile yolcunun bildirimi çeliştiğinde bloke tutar burada karara bağlanır: sürücüye aktar, iade et ya da
 // "yolcu gelmedi" (politikaya göre ücret + ceza). İsteğe bağlı sürücü cezası. Her karar gerekçeli ve denetim kaydında.
-import 'package:hadi/widgets/instant.dart';
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 
 import 'package:hadi/core/format.dart';
 import 'package:hadi/data/models.dart';
@@ -68,61 +68,44 @@ class _RideDisputesScreenState extends State<RideDisputesScreen> {
   @override
   Widget build(BuildContext context) {
     final items = _items;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Yolculuk anlaşmazlıkları')),
-      body: Column(children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: SegmentedButton<bool>(
-            segments: const [ButtonSegment(value: false, label: Text('Açık')), ButtonSegment(value: true, label: Text('Çözülen'))],
-            selected: {_resolved},
-            onSelectionChanged: (s) {
-              _resolved = s.first;
-              _load();
-            },
-          ),
-        ),
-        if (_err != null) Padding(padding: const EdgeInsets.all(12), child: Text(_err!, style: TextStyle(color: HadiColors.text(HadiColors.error)))),
-        Expanded(
-          child: items == null
-              ? const ListSkeleton(count: 5)
-              : items.isEmpty
-                  ? Center(child: Text('Kayıt yok.', style: TextStyle(color: HadiColors.ink3)))
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: items.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) {
-                          final d = items[i];
-                          final dep = d['departAt'] is num && (d['departAt'] as num) > 0 ? DateTime.fromMillisecondsSinceEpoch((d['departAt'] as num).toInt()) : null;
-                          return Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text('${d['eventTitle'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w900)),
-                                if (dep != null) Text('Kalkış ${dayLong(dep)} ${hm(dep)}', style: TextStyle(color: HadiColors.ink3, fontSize: 12)),
-                                const SizedBox(height: 8),
-                                Text('Sürücü: ${d['driverName'] ?? ''} → yolcu için "${_mark(d['driverMark'])}"'),
-                                if ('${d['driverNote'] ?? ''}'.isNotEmpty) Text('  “${d['driverNote']}”', style: TextStyle(color: HadiColors.ink2)),
-                                Text('Yolcu: ${d['passengerName'] ?? ''} → "${_mark(d['passengerMark'])}"'),
-                                if ('${d['passengerNote'] ?? ''}'.isNotEmpty) Text('  “${d['passengerNote']}”', style: TextStyle(color: HadiColors.ink2)),
-                                const SizedBox(height: 6),
-                                Text('Bloke: ${d['charged'] ?? 0}$kElmas (fiyat ${d['priceHp'] ?? 0}$kElmas)', style: const TextStyle(fontWeight: FontWeight.w700)),
-                                if (_resolved) Text('Karar: ${d['outcome'] ?? ''} · ${d['note'] ?? ''}', style: TextStyle(color: HadiColors.ink3)),
-                                if (!_resolved) ...[
-                                  const SizedBox(height: 8),
-                                  Align(alignment: Alignment.centerRight, child: FilledButton(onPressed: () => _resolve(d), child: const Text('Karar ver'))),
-                                ],
-                              ]),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-        ),
-      ]),
+    final t = Theme.of(context).textTheme;
+    return CrewPage(
+      title: 'Yolculuk anlaşmazlıkları',
+      subtitle: 'Paylaşımlı yolculuk şikâyetleri ve bloke Elmas kararları',
+      maxWidth: 920,
+      gap: CrewSpace.md,
+      onRefresh: _load,
+      toolbar: CrewFilterChips<bool>(
+        options: const [(false, 'Açık'), (true, 'Çözülen')],
+        value: _resolved,
+        onChanged: (v) {
+          _resolved = v;
+          _load();
+        },
+      ),
+      children: [
+        if (_err != null) CrewCard(child: CrewError(message: _err!, onRetry: _load)),
+        if (items == null && _err == null) const CrewCard(child: CrewLoading()),
+        if (items != null && items.isEmpty)
+          CrewCard(child: CrewEmpty(icon: Icons.directions_car_outlined, title: _resolved ? 'Çözülen kayıt yok' : 'Açık anlaşmazlık yok')),
+        for (final d in items ?? const <Map<String, Object?>>[])
+          Builder(builder: (context) {
+            final dep = d['departAt'] is num && (d['departAt'] as num) > 0 ? DateTime.fromMillisecondsSinceEpoch((d['departAt'] as num).toInt()) : null;
+            return CrewQueueCard(
+              title: '${d['eventTitle'] ?? ''}',
+              pill: CrewPill('Bloke ${d['charged'] ?? 0}$kElmas', color: HadiColors.iletisim),
+              meta: [if (dep != null) 'Kalkış ${dayLong(dep)} ${hm(dep)}', 'fiyat ${d['priceHp'] ?? 0}$kElmas'].join(' · '),
+              details: [
+                Text('Sürücü: ${d['driverName'] ?? ''} → yolcu için "${_mark(d['driverMark'])}"', style: t.bodyMedium),
+                if ('${d['driverNote'] ?? ''}'.isNotEmpty) CrewQuote('“${d['driverNote']}”', color: HadiColors.ink3),
+                Text('Yolcu: ${d['passengerName'] ?? ''} → "${_mark(d['passengerMark'])}"', style: t.bodyMedium),
+                if ('${d['passengerNote'] ?? ''}'.isNotEmpty) CrewQuote('“${d['passengerNote']}”', color: HadiColors.ink3),
+                if (_resolved) Text('Karar: ${d['outcome'] ?? ''} · ${d['note'] ?? ''}', style: t.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+              ],
+              actions: [if (!_resolved) FilledButton(onPressed: () => _resolve(d), child: const Text('Karar ver'))],
+            );
+          }),
+      ],
     );
   }
 }

@@ -3,8 +3,7 @@
 // (ad + takip bağlantısı şablonu, {no} = takip numarası) ve mağazanın açık/kapalı durumu.
 import 'package:flutter/material.dart';
 
-import 'package:hadi/theme/hadi_colors.dart';
-import 'package:hadi/widgets/skeleton.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 
 import 'store_admin_common.dart';
 import 'store_preview_bridge.dart' show storeAdminConfig;
@@ -82,6 +81,7 @@ class _StoreSettingsAdminTabState extends State<StoreSettingsAdminTab> {
         _apply(r);
         _loaded = true;
         _error = null;
+        _saved = _snapshot();
       });
     } catch (e) {
       if (mounted) {
@@ -130,7 +130,10 @@ class _StoreSettingsAdminTabState extends State<StoreSettingsAdminTab> {
     try {
       final r = await storeAdminConfig(context, set: set);
       if (!mounted) return;
-      setState(() => _apply(r));
+      setState(() {
+        _apply(r);
+        _saved = _snapshot();
+      });
       storeToast(context, 'Mağaza ayarları kaydedildi.');
     } catch (e) {
       if (mounted) storeToast(context, storeError(e));
@@ -139,120 +142,119 @@ class _StoreSettingsAdminTabState extends State<StoreSettingsAdminTab> {
     }
   }
 
-  Widget _body() {
-    if (!_loaded) return const Padding(padding: EdgeInsets.all(16), child: Column(children: [ListTileSkeleton(), ListTileSkeleton()]));
+  // Alan değişti mi (Kaydet çubuğu): son yüklenen/kaydedilen değerle karşılaştırılır.
+  String _snapshot() => [
+        _enabled,
+        for (final f in _fields) _c[f.$1]!.text.trim(),
+        for (final c in _carriers) '${c.name.text.trim()}|${c.url.text.trim()}',
+      ].join('\u0001');
+  String _saved = '';
+  bool get _dirty => _loaded && _error == null && _snapshot() != _saved;
+
+  void _addCarrier() => setState(() => _carriers.add(_Carrier(const {})));
+  void _touch() => setState(() {});
+
+  List<Widget> _content() {
+    if (!_loaded) return const [CrewCard(child: CrewLoading(rows: 3))];
     if (_error != null) {
-      return ListView(padding: const EdgeInsets.all(24), children: [
-        Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: HadiColors.ink2)),
-        const SizedBox(height: 12),
-        Center(child: OutlinedButton(onPressed: () => setState(() {
+      return [
+        CrewCard(child: CrewError(message: _error!, onRetry: () => setState(() {
           _loaded = false;
           _load();
-        }), child: const Text('Tekrar dene'))),
-      ]);
+        }))),
+      ];
     }
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 40), children: [
-      Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            StoreCard(
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                value: _enabled,
-                onChanged: (v) => setState(() => _enabled = v),
-                title: const Text('Mağaza açık', style: TextStyle(fontWeight: FontWeight.w900)),
-                subtitle: Text(
-                  _enabled
-                      ? 'Üyeler ürünleri görüp sipariş verebilir.'
-                      : 'Yeni sipariş ve dijital satın alma alınmaz; mevcut siparişler işlenmeye devam eder.',
-                  style: TextStyle(color: HadiColors.ink2, fontSize: 12.5),
-                ),
-              ),
-            ),
-            const StoreSectionTitle('Kargo ve hediye'),
-            StoreCard(
-              child: Column(children: [
-                for (final f in _fields)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 5),
-                    child: Row(children: [
-                      Expanded(child: Text(f.$2, style: const TextStyle(fontSize: 13.5))),
-                      SizedBox(
-                        width: 120,
-                        child: TextField(
-                          controller: _c[f.$1],
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: InputDecoration(suffixText: f.$3, isDense: true),
-                        ),
-                      ),
-                    ]),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    'Ücretsiz kargo eşiği kartla ödenen sepet toplamına uygulanır. Hediye alıcısı bu süre içinde adres seçmezse sipariş iptal edilip gönderene iade edilir.',
-                    style: TextStyle(color: HadiColors.ink3, fontSize: 12),
-                  ),
-                ),
-              ]),
-            ),
-            StoreSectionTitle('Kargo firmaları',
-                trailing: TextButton.icon(
-                  onPressed: () => setState(() => _carriers.add(_Carrier(const {}))),
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Firma ekle'),
-                )),
-            StoreCard(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Text('Takip bağlantısında takip numarasının geleceği yere {no} yaz. Örn. https://kargotakip.ornek.com/?no={no}',
-                    style: TextStyle(color: HadiColors.ink3, fontSize: 12)),
-                if (_carriers.isEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Text('Henüz kargo firması yok.', style: TextStyle(color: HadiColors.ink2))),
-                for (var i = 0; i < _carriers.length; i++)
-                  Padding(
-                    key: ObjectKey(_carriers[i]),
-                    padding: const EdgeInsets.only(top: 10),
-                    child: LayoutBuilder(builder: (context, cons) {
-                      final c = _carriers[i];
-                      final name = TextField(controller: c.name, decoration: const InputDecoration(labelText: 'Firma adı', isDense: true));
-                      final url = TextField(
-                        controller: c.url,
-                        keyboardType: TextInputType.url,
-                        decoration: const InputDecoration(labelText: 'Takip bağlantısı şablonu', hintText: 'https://…{no}', isDense: true),
-                      );
-                      final del = IconButton(
-                        tooltip: 'Kaldır',
-                        onPressed: () => setState(() => _carriers.removeAt(i).dispose()),
-                        icon: Icon(Icons.delete_outline_rounded, color: HadiColors.error),
-                      );
-                      if (cons.maxWidth < 520) {
-                        return Column(children: [Row(children: [Expanded(child: name), del]), url]);
-                      }
-                      return Row(children: [SizedBox(width: 180, child: name), const SizedBox(width: 10), Expanded(child: url), del]);
-                    }),
-                  ),
-              ]),
-            ),
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: _busy ? null : _save,
-                icon: _busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_rounded),
-                label: const Text('Kaydet'),
-              ),
-            ),
-          ]),
+    final wide = crewWide(context);
+    return [
+      CrewCard(children: [
+        CrewSwitchRow(
+          title: 'Mağaza açık',
+          subtitle: _enabled
+              ? 'Üyeler ürünleri görüp sipariş verebilir.'
+              : 'Yeni sipariş ve dijital satın alma alınmaz; mevcut siparişler işlenmeye devam eder.',
+          value: _enabled,
+          onChanged: (v) => setState(() => _enabled = v),
         ),
+      ]),
+      CrewCard(
+        title: 'Kargo ve hediye',
+        icon: Icons.local_shipping_outlined,
+        children: [
+          CrewFormGrid(children: [
+            for (final f in _fields)
+              TextField(
+                controller: _c[f.$1],
+                onChanged: (_) => _touch(),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(labelText: f.$2, suffixText: f.$3),
+              ),
+          ]),
+          const CrewNote(
+            'Ücretsiz kargo eşiği kartla ödenen sepet toplamına uygulanır. Hediye alıcısı bu süre içinde adres seçmezse sipariş iptal edilip gönderene iade edilir.',
+          ),
+        ],
       ),
-    ]);
+      CrewCard(
+        title: 'Kargo firmaları',
+        subtitle: 'Takip bağlantısında numaranın geleceği yere {no} yaz. Örn. https://kargotakip.ornek.com/?no={no}',
+        icon: Icons.inventory_2_outlined,
+        action: wide
+            ? OutlinedButton.icon(onPressed: _addCarrier, icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Firma ekle'))
+            : IconButton.filledTonal(tooltip: 'Firma ekle', onPressed: _addCarrier, icon: const Icon(Icons.add_rounded)),
+        children: [
+          if (_carriers.isEmpty)
+            CrewEmpty(
+              icon: Icons.local_shipping_outlined,
+              title: 'Henüz kargo firması yok',
+              message: 'Siparişi kargoya verirken seçilecek firmaları buraya ekle.',
+              action: FilledButton.icon(onPressed: _addCarrier, icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Firma ekle')),
+            ),
+          for (var i = 0; i < _carriers.length; i++)
+            CrewItemCard(
+              key: ObjectKey(_carriers[i]),
+              title: _carriers[i].name.text.trim().isEmpty ? 'Yeni firma' : _carriers[i].name.text.trim(),
+              removeTooltip: 'Firmayı kaldır',
+              onRemove: () => setState(() => _carriers.removeAt(i).dispose()),
+              // Ad kısa, şablon uzun: genişte yan yana (ad 200 px), dar ekranda alt alta.
+              child: LayoutBuilder(builder: (context, c) {
+                    final name = TextField(
+                      controller: _carriers[i].name,
+                      onChanged: (_) => _touch(),
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(labelText: 'Firma adı'),
+                    );
+                    final url = TextField(
+                      controller: _carriers[i].url,
+                      onChanged: (_) => _touch(),
+                      keyboardType: TextInputType.url,
+                      decoration: const InputDecoration(labelText: 'Takip bağlantısı şablonu', hintText: 'https://…{no}'),
+                    );
+                    if (c.maxWidth < 520) return Column(spacing: CrewSpace.fieldGap, children: [name, url]);
+                    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      SizedBox(width: 200, child: name),
+                      const SizedBox(width: CrewSpace.md),
+                      Expanded(child: url),
+                    ]);
+                  }),
+            ),
+        ],
+      ),
+    ];
   }
 
   @override
-  Widget build(BuildContext context) {
-    final body = RefreshIndicator(onRefresh: _load, child: _body());
-    return widget.embedded
-        ? body
-        : Scaffold(appBar: AppBar(title: const Text('Mağaza ayarları', maxLines: 1, overflow: TextOverflow.ellipsis)), body: body);
-  }
+  Widget build(BuildContext context) => CrewPage(
+        title: 'Mağaza ayarları',
+        subtitle: 'Kargo ücreti, kargo firmaları, hediye süresi',
+        embedded: widget.embedded,
+        maxWidth: CrewWidth.form,
+        onRefresh: _load,
+        bottomBar: _loaded && _error == null
+            ? CrewSaveBar(dirty: _dirty, busy: _busy, onSave: _save, onReset: _dirty ? () => setState(() {
+                _loaded = false;
+                _load();
+              }) : null)
+            : null,
+        children: _content(),
+      );
 }

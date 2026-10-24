@@ -3,6 +3,7 @@
 // ve eşikler. Eşik aşılınca her gün 08:07'de ana kurucuya bildirim gider. IAM / faturalama / API anahtarına dokunulmaz.
 // Hizmet anahtarı: cost_alerts.
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'package:hadi/core/service_switches.dart';
@@ -141,7 +142,7 @@ class _CostAlertsScreenState extends State<CostAlertsScreen> {
     final thr = OpsApi.map(d['thresholds']);
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView(padding: EdgeInsets.fromLTRB(12, 8, 12, 24 + MediaQuery.paddingOf(context).bottom), children: [
+      child: CrewListView(maxWidth: 1040, children: [
         if (_busy) const LinearProgressIndicator(minHeight: 2),
         Text('Değerler sunucu sayaçlarından ve Google Cloud Monitoring\'den (salt okuma) gelir; "—" ölçülemedi demektir. '
             'Tahmini değerlerdir; kesin tutar için Google Cloud faturasına bak.', style: TextStyle(color: HadiColors.ink3, fontSize: 12.5, height: 1.35)),

@@ -49,6 +49,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Bildirim Stüdyosu ses önizlemesi (hadimobile/assets/notify_sounds kopyası; uygulamaya gömülü bildirim sesleri).
+  assets:
+    - assets/notify_sounds/
   # Uygulamanın yazı tipi (Bricolage Grotesque, SIL OFL 1.1; hadimobile/assets/fonts kopyası).
   fonts:
     - family: Bricolage

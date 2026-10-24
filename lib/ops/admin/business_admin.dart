@@ -2,6 +2,7 @@
 // Kurucular ya da `business.review` yetkisi; ayarlar (komisyon, Elmas→TL kuru) yalnızca ana kurucu (sunucu requirePrimary).
 // Sunucu: functions/src/business.ts.
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart' show CrewMaxWidth;
 import 'package:hadi/data/company_info.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -63,7 +64,7 @@ class BusinessAdminTab extends StatelessWidget {
         ),
       ]),
     );
-    return embedded ? body : Scaffold(appBar: AppBar(title: const Text('İşletmeler', maxLines: 1, overflow: TextOverflow.ellipsis)), body: body);
+    return embedded ? body : Scaffold(appBar: AppBar(title: const Text('İşletmeler', maxLines: 1, overflow: TextOverflow.ellipsis)), body: CrewMaxWidth(maxWidth: 1000, padded: false, child: body));
   }
 }
 

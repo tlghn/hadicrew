@@ -5,9 +5,9 @@ import 'package:hadi/core/capabilities.dart';
 import 'package:hadi/core/session.dart';
 import 'package:hadi/data/models.dart';
 import 'package:hadi/features/feed/content_hide.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/hadi_sheet.dart';
-import 'package:hadi/widgets/instant.dart';
 
 /// Gönderi "…" menüsüne eklenecek satır: "Gizle (tüm uygulamada)" / "Gizlemeyi kaldır".
 /// Yetki yoksa boş liste döner. [sheet]: açık menünün context'i (kapatılır).
@@ -166,120 +166,106 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
 
   void _reload() => setState(() { _f = _load(); });
 
+  Widget _thumb(HiddenItem x) => x.thumb != null
+      ? Image.network(x.thumb!, fit: BoxFit.cover, errorBuilder: (_, _, _) => ColoredBox(color: HadiColors.mist))
+      : ColoredBox(color: HadiColors.mist, child: Icon(Icons.notes_rounded, color: HadiColors.ink3));
+
+  Widget _item(HiddenItem x, Session s) {
+    final t = Theme.of(context).textTheme;
+    final (pill, color) = x.pending
+        ? ('Karar bekliyor', HadiColors.heyecan)
+        : x.review == 'kept'
+            ? ('Gizli kalıyor', HadiColors.error)
+            : ('Gizli', HadiColors.ink3);
+    return CrewQueueCard(
+      thumb: _thumb(x),
+      title: '${x.label} · ${x.ownerName}',
+      pill: CrewPill(pill, color: color),
+      meta: '${x.pending ? 'İşaretleyen' : 'Gizleyen'}: ${x.byName}${x.at != null ? ' · ${_date(x.at!)}' : ''}',
+      details: [
+        if (x.preview.isNotEmpty) Text(x.preview, maxLines: 3, overflow: TextOverflow.ellipsis, style: t.bodyMedium),
+        Text('Gerekçe: ${x.reason}', style: t.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+        if (x.review == 'kept')
+          Text('Karar: gizli kalsın · ${x.reviewByName ?? ''}${x.reviewAt != null ? ' · ${_date(x.reviewAt!)}' : ''}${(x.reviewNote ?? '').isNotEmpty ? ' · ${x.reviewNote}' : ''}',
+              style: t.bodySmall),
+        if (x.appeal != null) CrewQuote('İtiraz: ${x.appeal}'),
+        if (x.pending && x.by == s.uid && !s.isFounder)
+          Text('Sen işaretledin: başka bir yetkili karara bağlamalı.', style: t.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+      ],
+      actions: [
+        if (x.pending && !(x.by == s.uid && !s.isFounder)) ...[
+          OutlinedButton.icon(
+            icon: const Icon(Icons.visibility_rounded, size: 18),
+            label: const Text('Geri aç'),
+            onPressed: _busyKey == x.key ? null : () => _decide(x, keep: false),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.gpp_good_rounded, size: 18),
+            label: const Text('Gizli kalsın'),
+            style: FilledButton.styleFrom(backgroundColor: HadiColors.fillForWhite(HadiColors.error), foregroundColor: Colors.white),
+            onPressed: _busyKey == x.key ? null : () => _decide(x, keep: true),
+          ),
+        ],
+        if (!x.pending)
+          TextButton.icon(
+            icon: const Icon(Icons.visibility_rounded, size: 18),
+            label: const Text('Gizlemeyi kaldır'),
+            onPressed: () async {
+              if (await unhideContentFlow(context, x.target)) _reload();
+            },
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final body = RefreshIndicator(
-      onRefresh: () async => _reload(),
-      child: FutureBuilder<List<HiddenItem>>(
-        future: _f,
-        builder: (context, snap) {
-          if (snap.hasError) {
-            return ListView(children: [
-              Padding(padding: const EdgeInsets.all(24), child: Text(snap.error is AppFailure ? '${snap.error}' : 'Yüklenemedi. Aşağı çekip yenile.')),
-            ]);
-          }
-          if (!snap.hasData) return const ListSkeleton();
+    return FutureBuilder<List<HiddenItem>>(
+      future: _f,
+      builder: (context, snap) {
+        final s = SessionScope.read(context);
+        List<Widget> children;
+        Map<int, int>? counts;
+        if (snap.hasError) {
+          children = [CrewCard(child: CrewError(message: snap.error is AppFailure ? '${snap.error}' : 'Bağlantını kontrol edip tekrar dene.', onRetry: _reload))];
+        } else if (!snap.hasData) {
+          children = const [CrewCard(child: CrewLoading())];
+        } else {
           final all = snap.data!;
-          final s = SessionScope.read(context);
           final pend = all.where((x) => x.pending).toList();
           final done = all.where((x) => !x.pending).toList();
           final apps = all.where((x) => x.appeal != null).toList();
+          counts = {0: pend.length, 1: done.length, 2: apps.length};
           final items = switch (_tab) { 0 => pend, 1 => done, _ => apps };
-          return ListView(padding: const EdgeInsets.only(bottom: 24), children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Wrap(spacing: 8, runSpacing: 6, children: [
-                ChoiceChip(label: Text('Modere edilecek (${pend.length})'), selected: _tab == 0, onSelected: (_) => setState(() => _tab = 0)),
-                ChoiceChip(label: Text('Karara bağlanan (${done.length})'), selected: _tab == 1, onSelected: (_) => setState(() => _tab = 1)),
-                ChoiceChip(label: Text('İtirazlar (${apps.length})'), selected: _tab == 2, onSelected: (_) => setState(() => _tab = 2)),
-              ]),
-            ),
+          children = [
             if (items.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Center(child: Text(_tab == 0 ? 'Karar bekleyen içerik yok.' : _tab == 1 ? 'Karara bağlanan içerik yok.' : 'İtiraz yok.', style: TextStyle(color: HadiColors.ink3))),
-              ),
-            for (final x in items)
-              Card(
-                margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: SizedBox(
-                        width: 56,
-                        height: 56,
-                        child: x.thumb != null
-                            ? Image.network(x.thumb!, fit: BoxFit.cover, errorBuilder: (_, _, _) => ColoredBox(color: HadiColors.mist))
-                            : ColoredBox(color: HadiColors.mist, child: Icon(Icons.notes_rounded, color: HadiColors.ink3)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${x.label} · ${x.ownerName}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                        if (x.preview.isNotEmpty) Text(x.preview, maxLines: 2, overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 4),
-                        Text('Gerekçe: ${x.reason}', style: TextStyle(color: HadiColors.ink2, fontSize: 12)),
-                        Text('${x.pending ? 'İşaretleyen' : 'Gizleyen'}: ${x.byName}${x.at != null ? ' · ${_date(x.at!)}' : ''}', style: TextStyle(color: HadiColors.ink3, fontSize: 12)),
-                        if (x.review == 'kept')
-                          Text('Karar: gizli kalsın · ${x.reviewByName ?? ''}${x.reviewAt != null ? ' · ${_date(x.reviewAt!)}' : ''}${(x.reviewNote ?? '').isNotEmpty ? ' · ${x.reviewNote}' : ''}',
-                              style: TextStyle(color: HadiColors.ink2, fontSize: 12)),
-                        if (x.appeal != null)
-                          Container(
-                            margin: const EdgeInsets.only(top: 6),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: HadiColors.heyecanSoft, borderRadius: BorderRadius.circular(8)),
-                            child: Text('İtiraz: ${x.appeal}', style: const TextStyle(fontSize: 12)),
-                          ),
-                        if (x.pending) ...[
-                          if (x.by == s.uid && !s.isFounder)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text('Senin işaretledin: başka bir yetkili karara bağlamalı.', style: TextStyle(color: HadiColors.ink3, fontSize: 12, fontStyle: FontStyle.italic)),
-                            )
-                          else
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: Wrap(spacing: 6, children: [
-                                OutlinedButton.icon(
-                                  icon: const Icon(Icons.visibility_rounded, size: 18),
-                                  label: const Text('Geri aç'),
-                                  onPressed: _busyKey == x.key ? null : () => _decide(x, keep: false),
-                                ),
-                                FilledButton.icon(
-                                  icon: const Icon(Icons.gpp_good_rounded, size: 18),
-                                  label: const Text('Gizli kalsın'),
-                                  style: FilledButton.styleFrom(backgroundColor: HadiColors.error),
-                                  onPressed: _busyKey == x.key ? null : () => _decide(x, keep: true),
-                                ),
-                              ]),
-                            ),
-                        ] else
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              icon: const Icon(Icons.visibility_rounded, size: 18),
-                              label: const Text('Gizlemeyi kaldır'),
-                              onPressed: () async {
-                                if (await unhideContentFlow(context, x.target)) _reload();
-                              },
-                            ),
-                          ),
-                      ]),
-                    ),
-                  ]),
+              CrewCard(
+                child: CrewEmpty(
+                  icon: Icons.verified_user_outlined,
+                  title: _tab == 0 ? 'Karar bekleyen içerik yok' : _tab == 1 ? 'Karara bağlanan içerik yok' : 'İtiraz yok',
+                  message: _tab == 0 ? 'Bir gönderi işaretlenince burada görünür.' : null,
                 ),
               ),
-          ]);
-        },
-      ),
-    );
-    if (widget.embedded) return body;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Modere edilecek gönderiler'), actions: [IconButton(onPressed: _reload, icon: const Icon(Icons.refresh_rounded))]),
-      body: body,
+            for (final x in items) _item(x, s),
+          ];
+        }
+        return CrewPage(
+          title: 'Modere edilecek gönderiler',
+          subtitle: 'İşaretlenenler, kararlar ve itirazlar',
+          embedded: widget.embedded,
+          maxWidth: 960,
+          gap: CrewSpace.md,
+          onRefresh: () async => _reload(),
+          actions: [IconButton(tooltip: 'Yenile', onPressed: _reload, icon: const Icon(Icons.refresh_rounded))],
+          toolbar: CrewFilterChips<int>(
+            options: const [(0, 'Modere edilecek'), (1, 'Karara bağlanan'), (2, 'İtirazlar')],
+            value: _tab,
+            counts: counts,
+            onChanged: (v) => setState(() => _tab = v),
+          ),
+          children: children,
+        );
+      },
     );
   }
 

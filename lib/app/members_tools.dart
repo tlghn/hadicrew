@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hadi/core/session.dart';
 import 'package:hadi/data/member_models.dart' show MemberProfile;
 import 'package:hadi/features/messages/chat_widgets.dart' show ChatAvatar;
+import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 
 import '../ops/admin/hp_economy_admin.dart' show showHpGrantSheet;
@@ -97,40 +98,55 @@ class _MemberToolsScreenState extends State<MemberToolsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Üye işlemleri')),
-      floatingActionButton: FloatingActionButton.extended(onPressed: _find, icon: const Icon(Icons.person_search_rounded), label: const Text('Üye bul')),
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 96), children: [
-        Text('Ada, kullanıcı adına ya da telefon numarasına göre bul; ardından işlemi seç.', style: text.bodyMedium?.copyWith(color: HadiColors.ink2)),
-        const SizedBox(height: 16),
-        if (_recent.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 48),
-            child: Column(children: [
-              Icon(Icons.person_search_rounded, size: 44, color: HadiColors.ink3),
-              const SizedBox(height: 10),
-              Text('Henüz üye açılmadı.', style: text.titleSmall?.copyWith(color: HadiColors.ink2)),
-            ]),
-          )
-        else ...[
-          Text('Son açılanlar', style: text.labelLarge?.copyWith(color: HadiColors.ink3, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          for (final m in _recent)
-            Card(
-              elevation: 0,
-              margin: const EdgeInsets.only(bottom: 8),
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              child: ListTile(
+    final cs = Theme.of(context).colorScheme;
+    return CrewPage(
+      title: 'Üye işlemleri',
+      subtitle: 'Rol, Premium, Elmas, moderasyon — her işlem gerekçeyle kayda geçer',
+      maxWidth: CrewWidth.form,
+      children: [
+        // Arama kutusu görünümlü düğme: üye seçiciyi açar.
+        Material(
+          color: crewCardColor(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: cs.outlineVariant)),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: _find,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: CrewSpace.lg, vertical: CrewSpace.lg),
+              child: Row(children: [
+                Icon(Icons.person_search_rounded, color: cs.primary),
+                const SizedBox(width: CrewSpace.md),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Üye bul', style: Theme.of(context).textTheme.titleMedium),
+                    Text('Ad, kullanıcı adı ya da telefon numarası', style: Theme.of(context).textTheme.bodySmall),
+                  ]),
+                ),
+                FilledButton(onPressed: _find, child: const Text('Ara')),
+              ]),
+            ),
+          ),
+        ),
+        CrewListCard(
+          title: 'Son açılanlar',
+          subtitle: _recent.isEmpty ? null : 'Bu oturumda açtığın üyeler',
+          empty: const CrewEmpty(
+            icon: Icons.history_rounded,
+            title: 'Henüz üye açılmadı',
+            message: 'Bir üyeyi bulduğunda işlemler penceresi açılır; burada da listelenir.',
+          ),
+          children: [
+            for (final m in _recent)
+              ListTile(
                 leading: ChatAvatar(uid: m.uid, name: m.publicName, photoUrl: m.photoUrl, size: 40),
-                title: Text(m.staffLabel, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+                title: Text(m.staffLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: (m.username ?? '').isEmpty ? null : Text('@${m.username}'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => _actions(m),
               ),
-            ),
-        ],
-      ]),
+          ],
+        ),
+      ],
     );
   }
 }

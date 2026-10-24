@@ -8,13 +8,13 @@ import 'package:hadi/core/format.dart';
 import 'package:hadi/core/session.dart';
 import 'package:hadi/data/chat_models.dart';
 import 'package:hadi/data/models.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/common.dart';
 import '../moderation/content_hide_staff.dart' show canHideContent;
 import 'package:hadi/features/gif/gif_picker.dart' show GifView;
 
 import 'package:hadi/widgets/net_fallback.dart';
-import 'package:hadi/features/fun/_placeholders.dart';
 import 'package:hadi/core/service_switches.dart';
 import 'ops/mod_queue_screen.dart' show ModQueueScreen;
 import 'package:hadi/data/privacy_hub_service.dart' show PrivacyHubApi;
@@ -61,66 +61,44 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final ses = SessionScope.of(context);
+    // Diğer kuyruklara kısayollar tek menüde (telefonda üst çubuk sekiz simgeyle dolup başlığı eziyordu).
+    final shortcuts = <(IconData, String, VoidCallback)>[
+      if (!ServiceSwitches.instance.isHidden('mod_queue'))
+        (Icons.gavel_rounded, 'Moderasyon kuyruğu', () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ModQueueScreen()))),
+      (Icons.sensors_rounded, 'Canlı yayın şikâyetleri', () => context.push('/b/canli')),
+      (Icons.shield_outlined, 'AI güvenliği', () => context.push('/b/ai-guvenligi')),
+      (Icons.support_agent_rounded, 'Destek talepleri', () => context.push('/b/destek')),
+      if (ses.isFounder || ses.can(Cap.identityReview)) (Icons.badge_rounded, 'Kimlik doğrulamaları', () => context.push('/b/kimlik')),
+      if (ses.isFounder || ses.can(Cap.addressReview)) (Icons.home_work_rounded, 'Adres belgeleri', () => context.push('/b/adres')),
+      if (ses.isFounder || ses.can(Cap.kahveSafety)) (Icons.coffee_rounded, 'Kahve güvenliği', () => context.push('/b/kahve')),
+      if (canHideContent(ses)) (Icons.visibility_off_rounded, 'Gizlenen gönderiler', () => context.push('/b/gizlenen')),
+    ];
     return Scaffold(
-      appBar: AppBar(title: const Text('Şikayetler', maxLines: 1, overflow: TextOverflow.ellipsis), actions: [
-        // Operasyon › Moderasyon kuyruğu (tek kuyruk, SLA, gerekçeli kararlar, itirazlar; hizmet anahtarı mod_queue).
-        if (!ServiceSwitches.instance.isHidden('mod_queue'))
-          IconButton(
-            tooltip: 'Moderasyon kuyruğu',
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ModQueueScreen())),
-            icon: const Icon(Icons.gavel_rounded),
-          ),
-        TextButton.icon(
-          onPressed: () => context.push('/b/canli'),
-          icon: const Icon(Icons.sensors_rounded),
-          label: const Text('Canlı yayın'),
+      backgroundColor: crewCanvas(context),
+      appBar: AppBar(title: const Text('Mesaj şikâyetleri', maxLines: 1, overflow: TextOverflow.ellipsis), actions: [
+        PopupMenuButton<int>(
+          tooltip: 'Diğer kuyruklar',
+          icon: const Icon(Icons.more_horiz_rounded),
+          onSelected: (i) => shortcuts[i].$3(),
+          itemBuilder: (_) => [
+            for (var i = 0; i < shortcuts.length; i++)
+              PopupMenuItem(value: i, child: ListTile(contentPadding: EdgeInsets.zero, leading: Icon(shortcuts[i].$1, size: 20), title: Text(shortcuts[i].$2))),
+          ],
         ),
-        IconButton(
-          tooltip: 'AI güvenliği',
-          onPressed: () => context.push('/b/ai-guvenligi'),
-          icon: const Icon(Icons.shield_outlined),
-        ),
-        IconButton(
-          tooltip: 'Destek talepleri',
-          onPressed: () => context.push('/b/destek'),
-          icon: const Icon(Icons.support_agent_rounded),
-        ),
-        // Kimlik doğrulama incelemesi: kurucu ya da identity.review.
-        if (SessionScope.of(context).isFounder || SessionScope.of(context).can(Cap.identityReview))
-          IconButton(
-            tooltip: 'Kimlik doğrulamaları',
-            onPressed: () => context.push('/b/kimlik'),
-            icon: const Icon(Icons.badge_rounded),
-          ),
-        // Adres belgeleri (adres doğrulaması) ve Kahve güvenlik incelemesi: kurucu ya da ilgili yetenek.
-        if (SessionScope.of(context).isFounder || SessionScope.of(context).can(Cap.addressReview))
-          IconButton(
-            tooltip: 'Adres belgeleri',
-            onPressed: () => context.push('/b/adres'),
-            icon: const Icon(Icons.home_work_rounded),
-          ),
-        if (SessionScope.of(context).isFounder || SessionScope.of(context).can(Cap.kahveSafety))
-          IconButton(
-            tooltip: 'Kahve güvenliği',
-            onPressed: () => context.push('/b/kahve'),
-            icon: const Icon(Icons.coffee_rounded),
-          ),
-        // Gizlenen gönderiler (kurucu / `content.hide` yetenekli roller)
-        if (canHideContent(SessionScope.of(context)))
-          IconButton(
-            tooltip: 'Gizlenen gönderiler',
-            onPressed: () => context.push('/b/gizlenen'),
-            icon: const Icon(Icons.visibility_off_rounded),
-          ),
+        const SizedBox(width: 8),
       ]),
       body: StreamBuilder<List<MessageReport>>(
         stream: _stream,
         builder: (context, snap) {
-          if (snap.hasError) return Center(child: Text('Yüklenemedi: ${snap.error}'));
-          if (!snap.hasData) return const RowsSkeleton();
+          if (snap.hasError) return CrewMaxWidth(maxWidth: 880, child: CrewError(message: '${snap.error}'));
+          if (!snap.hasData) return const CrewMaxWidth(maxWidth: 880, child: Padding(padding: EdgeInsets.only(top: 24), child: CrewLoading()));
           final list = snap.data!;
           _logShown(list);
-          return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 32), children: [
+          final side = CrewSpace.gutter(context);
+          return LayoutBuilder(builder: (context, cons) {
+          final pad = cons.maxWidth > 880 + 2 * side ? (cons.maxWidth - 880) / 2 : side;
+          return ListView(padding: EdgeInsets.fromLTRB(pad, 20, pad, 32), children: [
             const InfoNote(
               icon: Icons.policy_outlined,
               color: HadiColors.iletisim,
@@ -129,13 +107,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
             const SizedBox(height: 14),
             if (list.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 60),
-                child: Center(child: Text('Açık şikayet yok. 🎉', style: text.titleMedium?.copyWith(color: HadiColors.ink3))),
-              ),
+              const CrewCard(child: CrewEmpty(icon: Icons.flag_outlined, title: 'Açık şikâyet yok', message: 'Bir mesaj şikâyet edilince burada görünür.')),
             for (final r in list)
               Card(
                 margin: const EdgeInsets.only(bottom: 12),
+                color: crewCardColor(context),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -176,23 +153,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       },
                     ),
                     const SizedBox(height: 12),
-                    Row(children: [
-                      Expanded(
-                        child: OutlinedButton(onPressed: _busy.contains(r.id) ? null : () => _resolve(r, false), child: const Text('Kapat')),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: FilledButton(
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Wrap(spacing: CrewSpace.sm, runSpacing: CrewSpace.sm, children: [
+                        OutlinedButton(onPressed: _busy.contains(r.id) ? null : () => _resolve(r, false), child: const Text('Şikâyeti kapat')),
+                        FilledButton(
                           style: FilledButton.styleFrom(backgroundColor: HadiColors.fillForWhite(HadiColors.error), foregroundColor: Colors.white),
                           onPressed: _busy.contains(r.id) ? null : () => _resolve(r, true),
                           child: const Text('Mesajı kaldır'),
                         ),
-                      ),
-                    ]),
+                      ]),
+                    ),
                   ]),
                 ),
               ),
           ]);
+          });
         },
       ),
     );

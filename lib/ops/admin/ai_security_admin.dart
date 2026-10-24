@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:hadi/core/format.dart';
@@ -254,7 +255,7 @@ class _AiSecurityAdminTabState extends State<AiSecurityAdminTab> {
     final items = _items;
     final body = RefreshIndicator(
       onRefresh: _load,
-      child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 32), children: [
+      child: CrewListView(maxWidth: 960, children: [
         Text(
           'Görsellere ya da metinlere gizlenmiş, denetim yapay zekâsını yönlendirmeye çalışan talimatlar. '
           'Yapay zekâ bunlara uymaz; şüpheli içerik yayımlanmadan incelemeye alınır.',

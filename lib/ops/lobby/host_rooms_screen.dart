@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:hadi/core/session.dart';
@@ -42,7 +43,6 @@ class _HostRoomsScreenState extends State<HostRoomsScreen> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Scaffold(
       appBar: AppBar(title: const Text('Bekleme salonları')),
       body: FutureBuilder<List<Map<String, Object?>>>(
@@ -68,9 +68,8 @@ class _HostRoomsScreenState extends State<HostRoomsScreen> {
           } else if (!snap.hasData) {
             children.add(const ListSkeleton(count: 3));
           } else if (snap.data!.isEmpty) {
-            children.add(Padding(
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              child: Center(child: Text('Şu an bekleyen aday yok.', style: text.bodyMedium?.copyWith(color: muted))),
+            children.add(const CrewCard(
+              child: CrewEmpty(icon: Icons.meeting_room_outlined, title: 'Şu an bekleyen aday yok', message: 'Bir aday salona girince burada görünür.'),
             ));
           } else {
             for (final r in snap.data!) {
@@ -97,11 +96,7 @@ class _HostRoomsScreenState extends State<HostRoomsScreen> {
           }
           return RefreshIndicator(
             onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              children: children,
-            ),
+            child: CrewListView(maxWidth: 820, children: children),
           );
         },
       ),

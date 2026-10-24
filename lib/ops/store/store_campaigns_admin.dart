@@ -3,6 +3,7 @@
 // adminCampaignToggle / adminCampaignDelete / adminCampaignSeed (store_marketing.ts; hesap commerce_engine.ts).
 // Fiyat her zaman sunucuda hesaplanır; bu ekran yalnızca kuralları yönetir. Yetki: kurucu ya da store.manage.
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 
 import 'package:hadi/core/format.dart';
 import 'package:hadi/core/session.dart';
@@ -69,7 +70,7 @@ class _StoreCampaignsAdminTabState extends State<StoreCampaignsAdminTab> {
     final list = _list;
     final body = RefreshIndicator(
       onRefresh: _load,
-      child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 32), children: [
+      child: CrewListView(maxWidth: 960, children: [
         Wrap(spacing: 8, runSpacing: 8, children: [
           FilledButton.icon(onPressed: () => _edit(), icon: const Icon(Icons.add_rounded), label: const Text('Yeni kampanya')),
           OutlinedButton.icon(
@@ -94,8 +95,16 @@ class _StoreCampaignsAdminTabState extends State<StoreCampaignsAdminTab> {
         ),
         const SizedBox(height: 12),
         if (_error != null) Text(_error!, style: TextStyle(color: HadiColors.text(HadiColors.error))),
-        if (list == null && _error == null) const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator())),
-        if (list != null && list.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('Henüz kampanya yok.'))),
+        if (list == null && _error == null) const StoreCard(child: CrewLoading(rows: 3)),
+        if (list != null && list.isEmpty)
+          StoreCard(
+            child: CrewEmpty(
+              icon: Icons.local_offer_outlined,
+              title: 'Henüz kampanya yok',
+              message: 'Yeni kampanya oluştur ya da örnek kampanyaları (kapalı olarak) ekleyip düzenle.',
+              action: FilledButton.icon(onPressed: () => _edit(), icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Yeni kampanya')),
+            ),
+          ),
         for (final c in list ?? const <Map<String, dynamic>>[]) _CampaignCard(
           c: c,
           busy: _busy.contains('${c['id']}'),
@@ -367,13 +376,11 @@ class _CampaignEditorState extends State<_CampaignEditor> {
           ),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 40), children: [
+      body: CrewListView(maxWidth: CrewWidth.form, children: [
             SwitchListTile(contentPadding: EdgeInsets.zero, value: _active, onChanged: (v) => setState(() => _active = v), title: const Text('Yayında', style: TextStyle(fontWeight: FontWeight.w800))),
+            const SizedBox(height: 8),
             TextField(controller: _t('label'), maxLength: 60, decoration: const InputDecoration(labelText: 'Kampanya adı (üyeler görür)', isDense: true)),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               initialValue: kStoreCampaignTypes.containsKey(_type) ? _type : 'pct',
               decoration: const InputDecoration(labelText: 'Tür', isDense: true),
@@ -484,8 +491,6 @@ class _CampaignEditorState extends State<_CampaignEditor> {
             StoreSectionTitle('İç not'),
             TextField(controller: _t('note'), maxLength: 200, maxLines: 2, decoration: const InputDecoration(labelText: 'Ekip notu (üyeler görmez)', isDense: true)),
           ]),
-        ),
-      ),
     );
   }
 }

@@ -3,6 +3,7 @@
 // YALNIZCA TOPLAM SAYILAR: kişi düzeyi veri yok. Kaynak: metrics_daily/{gün}.product (her gece 01:15).
 // Hizmet anahtarı: product_metrics.
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 
 import 'package:hadi/core/service_switches.dart';
 import 'package:hadi/data/models.dart' show AppFailure;
@@ -106,7 +107,7 @@ class _ProductMetricsScreenState extends State<ProductMetricsScreen> {
     String p(Object? v) => v is num ? '%${OpsApi.fmt(v, digits: 1)}' : '—';
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView(padding: EdgeInsets.fromLTRB(12, 8, 12, 24 + MediaQuery.paddingOf(context).bottom), children: [
+      child: CrewListView(maxWidth: 1040, children: [
         if (_busy) const LinearProgressIndicator(minHeight: 2),
         Text('Yalnızca toplam sayılar; kişi düzeyi veri yok. Aktiflik = o gün uygulamayı açan üye. Her gece 01:15\'te hesaplanır.',
             style: TextStyle(color: HadiColors.ink3, fontSize: 12.5, height: 1.35)),

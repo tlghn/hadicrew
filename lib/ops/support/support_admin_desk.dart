@@ -168,24 +168,21 @@ class _QueueState extends State<_Queue> {
     return Column(children: [
       if (plus) const DeskCsatStrip(),
       Padding(
-        padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: TextField(
           onChanged: (v) {
             _debounce?.cancel();
             _debounce = Timer(const Duration(milliseconds: 350), () => _filter(() => _q = v.trim()));
           },
-          decoration: InputDecoration(
-            isDense: true,
+          decoration: const InputDecoration(
             hintText: 'Kod, özet ya da üye adı',
-            prefixIcon: const Icon(Icons.search_rounded),
-            filled: true,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+            prefixIcon: Icon(Icons.search_rounded, size: 20),
           ),
         ),
       ),
       SizedBox(
         height: 46,
-        child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.fromLTRB(12, 6, 12, 2), children: [
+        child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.fromLTRB(16, 8, 16, 2), children: [
           for (final (v, l) in plus
               ? const [('active', 'Çözülmemiş'), ('open', 'Açık'), ('waiting', 'Bekliyor'), ('resolved', 'Çözüldü'), ('all', 'Tümü')]
               : const [('active', 'Açık'), ('resolved', 'Çözülen'), ('all', 'Tümü')])
@@ -210,7 +207,7 @@ class _QueueState extends State<_Queue> {
                             Center(child: Text('Kuyruk boş. Harika iş! 🎉', style: TextStyle(fontWeight: FontWeight.w800))),
                           ])
                         : ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(12, 6, 12, 24),
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                             itemCount: items.length,
                             itemBuilder: (_, i) => FadeSlideIn(
                               key: ValueKey(items[i].id),
@@ -276,8 +273,9 @@ class _QueueCard extends StatelessWidget {
     final slaColor = late ? HadiColors.error : (ratio > .6 ? HadiColors.heyecan : HadiColors.dostluk);
     return Card(
       elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: late ? HadiColors.error.withValues(alpha: .5) : cs.outlineVariant.withValues(alpha: .6))),
+      margin: const EdgeInsets.only(bottom: 10),
+      color: Theme.of(context).brightness == Brightness.dark ? null : cs.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: late ? HadiColors.error.withValues(alpha: .5) : cs.outlineVariant)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onOpen,

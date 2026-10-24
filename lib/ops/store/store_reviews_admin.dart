@@ -1,6 +1,7 @@
 // HADİ Crew — Mağaza yorumları ve değerlendirmeleri (24 Ekim 2026): ürüne göre süz, şikâyet sayısı, gizle / geri aç.
 // Sunucu: `store` › adminSocial / adminHide (store_social.ts). Gizlenen içerik üyelere görünmez, sayaçlardan düşer.
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 
 import 'package:hadi/core/format.dart';
 import 'package:hadi/core/session.dart';
@@ -102,10 +103,10 @@ class _StoreReviewsAdminTabState extends State<StoreReviewsAdminTab> {
         if (_error != null) Padding(padding: const EdgeInsets.all(12), child: Text(_error!, style: TextStyle(color: HadiColors.text(HadiColors.error)))),
         Expanded(
           child: _reviews == null && _error == null
-              ? const Center(child: CircularProgressIndicator())
+              ? const CrewMaxWidth(maxWidth: 900, child: Padding(padding: EdgeInsets.only(top: 16), child: CrewLoading()))
               : TabBarView(children: [
-                  ListView(padding: const EdgeInsets.all(16), children: [
-                    if (reviews.isEmpty) const Center(child: Text('Değerlendirme yok.')),
+                  CrewListView(maxWidth: 900, children: [
+                    if (reviews.isEmpty) const CrewEmpty(icon: Icons.star_outline_rounded, title: 'Değerlendirme yok'),
                     for (final r in reviews)
                       _Row(
                         hidden: r.hidden,
@@ -116,8 +117,8 @@ class _StoreReviewsAdminTabState extends State<StoreReviewsAdminTab> {
                         onHide: (v) => _hide('review', r.id, v),
                       ),
                   ]),
-                  ListView(padding: const EdgeInsets.all(16), children: [
-                    if (comments.isEmpty) const Center(child: Text('Yorum yok.')),
+                  CrewListView(maxWidth: 900, children: [
+                    if (comments.isEmpty) const CrewEmpty(icon: Icons.chat_bubble_outline_rounded, title: 'Yorum yok'),
                     for (final c in comments)
                       _Row(
                         hidden: c.hidden,

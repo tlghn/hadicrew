@@ -4,9 +4,9 @@ import 'package:hadi/core/format.dart';
 import 'package:hadi/core/session.dart';
 import 'package:hadi/data/live_service.dart';
 import 'package:hadi/data/models.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/hadi_sheet.dart';
-import 'package:hadi/features/fun/_placeholders.dart';
 
 /// Canlı yayın denetim raporları: otomatik denetimin durdurduğu ya da uyardığı
 /// yayınlar. Yönetim inceler; hatalıysa yayıncıya haber verilir, ağırsa süreli
@@ -85,69 +85,60 @@ class _LiveReportsScreenState extends State<LiveReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Canlı yayın raporları', maxLines: 1, overflow: TextOverflow.ellipsis),
-        actions: [
-          FilterChip(label: const Text('Açık'), selected: _onlyOpen, onSelected: (v) => setState(() => _onlyOpen = v)),
-          const SizedBox(width: 12),
-        ],
-      ),
-      body: StreamBuilder<List<LiveReport>>(
-        stream: _stream,
-        builder: (context, snap) {
-          if (snap.hasError) return Center(child: Text('Yüklenemedi: ${snap.error}', textAlign: TextAlign.center));
-          if (!snap.hasData) return const RowsSkeleton();
+    return StreamBuilder<List<LiveReport>>(
+      stream: _stream,
+      builder: (context, snap) {
+        final List<Widget> children;
+        if (snap.hasError) {
+          children = [CrewCard(child: CrewError(message: '${snap.error}'))];
+        } else if (!snap.hasData) {
+          children = const [CrewCard(child: CrewLoading())];
+        } else {
           final list = [for (final r in snap.data!) if (!_onlyOpen || r.open) r];
-          if (list.isEmpty) {
-            return Center(child: Padding(padding: EdgeInsets.all(28), child: Text('Bekleyen rapor yok 🎉', style: TextStyle(color: HadiColors.ink3))));
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            itemCount: list.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (context, i) {
-              final r = list[i];
-              final stopped = r.action == 'stopped';
-              return Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: HadiColors.card,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: r.open ? (stopped ? HadiColors.heyecan : HadiColors.line) : HadiColors.line),
+          children = [
+            if (list.isEmpty)
+              CrewCard(
+                child: CrewEmpty(
+                  icon: Icons.live_tv_outlined,
+                  title: _onlyOpen ? 'Bekleyen rapor yok' : 'Rapor yok',
+                  message: 'Otomatik denetim bir yayını durdurur ya da uyarırsa burada görünür.',
                 ),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Text(stopped ? '🔴 Durduruldu' : '⚠️ Uyarı', style: const TextStyle(fontWeight: FontWeight.w900)),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(r.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800))),
-                    if (r.createdAt != null) Text(dateTimeLong(r.createdAt!), style: TextStyle(color: HadiColors.ink3, fontSize: 11.5)),
-                  ]),
-                  const SizedBox(height: 6),
-                  Text('${r.hostName} · kaynak: ${switch (r.source) { 'audio' => 'ses', 'video' => 'görüntü', 'chat' => 'sohbet', _ => r.source }} · güven ${(r.confidence * 100).round()}%',
-                      style: TextStyle(color: HadiColors.ink2, fontSize: 12.5)),
-                  if (r.reason.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(r.reason)),
-                  if (r.evidence.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(top: 8),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: HadiColors.mist, borderRadius: BorderRadius.circular(10)),
-                      child: Text('“${r.evidence}”', style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 13)),
-                    ),
-                  const SizedBox(height: 10),
-                  if (r.open)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: FilledButton(onPressed: _busy.contains(r.id) ? null : () => _decide(r), child: const Text('İncele ve karar ver')),
-                    )
-                  else
-                    Text('✔ ${_decisionText[r.decision] ?? 'Kapatıldı'}', style: TextStyle(color: HadiColors.text(HadiColors.dostluk), fontWeight: FontWeight.w800)),
-                ]),
-              );
-            },
-          );
-        },
-      ),
+              ),
+            for (final r in list) _item(r),
+          ];
+        }
+        return CrewPage(
+          title: 'Canlı yayın raporları',
+          subtitle: 'Otomatik denetimin durdurduğu ya da uyardığı yayınlar',
+          maxWidth: 920,
+          gap: CrewSpace.md,
+          toolbar: CrewFilterChips<bool>(
+            options: const [(true, 'Açık'), (false, 'Tümü')],
+            value: _onlyOpen,
+            onChanged: (v) => setState(() => _onlyOpen = v),
+          ),
+          children: children,
+        );
+      },
+    );
+  }
+
+  Widget _item(LiveReport r) {
+    final stopped = r.action == 'stopped';
+    final t = Theme.of(context).textTheme;
+    final src = switch (r.source) { 'audio' => 'ses', 'video' => 'görüntü', 'chat' => 'sohbet', _ => r.source };
+    return CrewQueueCard(
+      title: '${r.hostName} · ${r.label}',
+      pill: CrewPill(stopped ? 'Durduruldu' : 'Uyarı', color: stopped ? HadiColors.error : HadiColors.heyecan),
+      meta: '${r.createdAt != null ? '${dateTimeLong(r.createdAt!)} · ' : ''}kaynak: $src · güven ${(r.confidence * 100).round()}%',
+      details: [
+        if (r.reason.isNotEmpty) Text(r.reason, style: t.bodyMedium),
+        if (r.evidence.isNotEmpty) CrewQuote('“${r.evidence}”', color: HadiColors.ink3),
+        if (!r.open) Text('Karar: ${_decisionText[r.decision] ?? 'Kapatıldı'}', style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: HadiColors.text(HadiColors.dostluk))),
+      ],
+      actions: [
+        if (r.open) FilledButton(onPressed: _busy.contains(r.id) ? null : () => _decide(r), child: const Text('İncele ve karar ver')),
+      ],
     );
   }
 }

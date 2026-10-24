@@ -4,6 +4,7 @@
 // Yenilemeler: süresi biten belgelerin yenisi. Uyuşmazlıklar: üyeye ulaşılamadı (kanıt), şikâyet (YZ özeti/önerisi; karar insanda),
 //   kuryesiz kalan sipariş. Ödemeler: kurye TL ödeme talepleri. Ayarlar (yalnızca ana kurucu): config/courier + belge listesi.
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hadi/core/app_lock.dart';
@@ -37,7 +38,7 @@ class CourierAdminTab extends StatelessWidget {
         const Expanded(child: TabBarView(children: [_Apps(status: 'pending'), _Apps(status: 'renewals'), _Cases(), _Payouts(), _Settings()])),
       ]),
     );
-    return embedded ? body : Scaffold(appBar: AppBar(title: const Text('Kuryeler', maxLines: 1, overflow: TextOverflow.ellipsis)), body: body);
+    return embedded ? body : Scaffold(appBar: AppBar(title: const Text('Kuryeler', maxLines: 1, overflow: TextOverflow.ellipsis)), body: CrewMaxWidth(maxWidth: 1000, padded: false, child: body));
   }
 }
 
@@ -644,7 +645,7 @@ class _SettingsState extends State<_Settings> {
   @override
   Widget build(BuildContext context) {
     if (_cfg == null) return ListView(padding: const EdgeInsets.all(16), children: const [ListTileSkeleton(), ListTileSkeleton()]);
-    return ListView(padding: EdgeInsets.fromLTRB(16, 12, 16, 32 + MediaQuery.paddingOf(context).bottom), children: [
+    return CrewListView(maxWidth: CrewWidth.form, children: [
       if (!_canEdit) Text('Ayarları yalnızca ana kurucu değiştirebilir.', style: TextStyle(color: HadiColors.ink2)),
       for (final f in _kNumFields)
         Padding(

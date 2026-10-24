@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:hadi/core/session.dart';
 import 'package:hadi/data/chat_models.dart';
 import 'package:hadi/data/chat_service.dart' show ChannelDraft;
 import 'package:hadi/data/models.dart' show AppFailure;
 import 'package:hadi/features/channels/channel_edit_sheet.dart' show kChannelDeleted, showChannelEditSheet;
 import 'package:hadi/features/messages/bot_widgets.dart' show BotPicker, saveBotPlacement;
+import 'package:hadi/features/templates/template_gallery.dart' show TemplateGalleryScreen;
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/instant.dart' show InlineError, ListSkeleton;
 
@@ -108,7 +110,14 @@ class _ChannelsAdminScreenState extends State<ChannelsAdminScreen> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Kanallar')),
+      appBar: AppBar(title: const Text('Kanallar'), actions: [
+        // Grup ve kanal şablonları (Kitap Kulübü, Finans, Aile…): galeriden şablonla aç (hadi/features/templates).
+        TextButton.icon(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TemplateGalleryScreen())),
+          icon: const Icon(Icons.dashboard_customize_rounded),
+          label: const Text('Şablonlar'),
+        ),
+      ]),
       floatingActionButton: FloatingActionButton.extended(onPressed: _create, icon: const Icon(Icons.add_rounded), label: const Text('Yeni kanal')),
       body: StreamBuilder<List<Chat>>(
         stream: _stream,
@@ -116,7 +125,7 @@ class _ChannelsAdminScreenState extends State<ChannelsAdminScreen> {
           if (snap.hasError) return InlineError(message: 'Kanallar yüklenemedi.', onRetry: () => setState(() => _stream = SessionScope.read(context).services.chat.watchChannels()));
           if (!snap.hasData) return const ListSkeleton();
           final all = [...snap.data!]..sort((a, b) => a.order.compareTo(b.order));
-          return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 96), children: [
+          return CrewListView(maxWidth: 960, bottom: 96, children: [
             Text('Hızlı başlangıç', style: text.labelLarge?.copyWith(color: HadiColors.ink3, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: [

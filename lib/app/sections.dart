@@ -27,6 +27,15 @@ import '../ops/store/store_products_admin.dart' show StoreProductsAdminTab;
 import '../ops/store/store_settings_admin.dart' show StoreSettingsAdminTab;
 import '../ops/store/store_campaigns_admin.dart' show StoreCampaignsAdminTab;
 import '../ops/store/store_reviews_admin.dart' show StoreReviewsAdminTab;
+import '../ops/secondhand/sh_admin_common.dart' show canManageSecondhand;
+import '../ops/secondhand/sh_disputes_admin.dart' show ShDisputesAdminTab;
+import '../ops/secondhand/sh_orders_admin.dart' show ShOrdersAdminTab;
+import '../ops/secondhand/sh_queue_admin.dart' show ShQueueAdminTab;
+import '../ops/secondhand/sh_settings_admin.dart' show ShSettingsAdminTab;
+import '../ops/notify_studio/ns_studio_screen.dart' show NotifyStudioScreen, canNotifySend, canNotifyApprove;
+import 'package:hadi/features/books/books_admin.dart' show BooksAdminScreen;
+import '../ops/pro/pro_admin.dart' show ProLicenseAdminTab, canReviewPro;
+import 'package:hadi/features/creator_subs/creator_subs_admin.dart' show CreatorReviewQueueTab;
 import '../ops/support/support_admin.dart' show SupportTicketsScreen;
 import 'channels_admin.dart' show ChannelsAdminScreen;
 import 'dashboard.dart' show DashboardScreen;
@@ -151,6 +160,20 @@ final List<CrewSection> kCrewSections = [
     visible: (s) => _cap(s, Cap.kahveSafety), build: () => const KahveSafetyAdminTab(embedded: false), countKey: 'kahveReviews',
     aliases: const ['/yonetim/kahve-guvenlik'], queue: true,
   ),
+  // Üye abonelikleri (creator_subs.ts): yapay zekânın emin olamadığı abonelere özel içerik, kademe, itirazlar, çocuk güvenliği.
+  // Bildirim bağlantısı: crewLink("/abonelik-incelemeleri"). Yetki: kurucu/yönetici ya da content.remove / moderation.system.
+  CrewSection(
+    id: 'abonelik-incelemeleri', title: 'Abonelik incelemeleri', subtitle: 'Abonelere özel gönderi ve kademe denetimi, itirazlar', icon: Icons.star_rounded, group: CrewGroup.inceleme,
+    visible: (s) => _admin(s) || _cap(s, 'content.remove') || _cap(s, 'moderation.system'), build: () => const CreatorReviewQueueTab(embedded: false),
+    aliases: const ['/abonelik-incelemeleri'], queue: true,
+  ),
+  // Profesyonel profil (pro_profiles.ts): lisans belgeleri (dört göz), bildirilen değerlendirmeler, profil gizleme.
+  // Bildirim bağlantısı: crewLink("/pro-lisans"). Yetki: kurucu ya da pro.review.
+  CrewSection(
+    id: 'pro-lisans', title: 'Lisans doğrulama', subtitle: 'Profesyonel profil: meslek belgeleri, değerlendirmeler', icon: Icons.workspace_premium_rounded, group: CrewGroup.inceleme,
+    visible: canReviewPro, build: () => const ProLicenseAdminTab(embedded: false), countKey: 'proLicenses',
+    aliases: const ['/pro-lisans'], queue: true,
+  ),
   CrewSection(
     id: 'isletmeler', title: 'İşletmeler', subtitle: 'Başvurular, etkinlikler, ödeme talepleri', icon: Icons.storefront_rounded, group: CrewGroup.ticaret,
     visible: (s) => _cap(s, Cap.businessReview), build: () => const BusinessAdminTab(embedded: false), countKey: 'businessApps',
@@ -182,6 +205,29 @@ final List<CrewSection> kCrewSections = [
     id: 'magaza-ayarlari', title: 'Mağaza ayarları', subtitle: 'Kargo ücreti, kargo firmaları, hediye süresi', icon: Icons.tune_rounded, group: CrewGroup.ticaret,
     visible: canManageStore, build: () => const StoreSettingsAdminTab(embedded: false),
   ),
+  // HADİ Kitap Mağazası (kurucu ya da store.manage; lib/features/books/books_admin.dart — Kurucu Paneli de aynısını kullanır).
+  CrewSection(
+    id: 'kitap-magazasi', title: 'Kitap Mağazası', subtitle: 'Kitaplar, bölümler, EPUB içe aktarma, yayınevleri, satış raporu, sesli kitap', icon: Icons.auto_stories_rounded, group: CrewGroup.ticaret,
+    visible: canManageStore, build: () => const BooksAdminScreen(), aliases: const ['/kitap-yonetimi'],
+  ),
+  // HADİ 2. El (kurucu ya da secondhand.manage). Bildirim bağlantıları: crewLink("/ikinci-el") → inceleme,
+  // crewLink("/ikinci-el/uyusmazliklar") → uyuşmazlıklar.
+  CrewSection(
+    id: 'ikinci-el', title: '2. El inceleme', subtitle: 'İlanlar, itirazlar, şikâyetler, dolandırıcılık, kargo kaydı', icon: Icons.recycling_rounded, group: CrewGroup.ticaret,
+    visible: canManageSecondhand, build: () => const ShQueueAdminTab(embedded: false), countKey: 'secondhand', aliases: const ['/ikinci-el'], queue: true,
+  ),
+  CrewSection(
+    id: 'ikinci-el-uyusmazliklar', title: '2. El uyuşmazlıkları', subtitle: 'Kanıtlar, satıcı yanıtı, karar ve iade', icon: Icons.report_outlined, group: CrewGroup.ticaret,
+    visible: canManageSecondhand, build: () => const ShDisputesAdminTab(embedded: false), aliases: const ['/ikinci-el/uyusmazliklar'],
+  ),
+  CrewSection(
+    id: 'ikinci-el-siparisler', title: '2. El siparişleri', subtitle: 'Emanetteki ödemeler, kargo kaydı, satıcı ödemeleri', icon: Icons.receipt_long_outlined, group: CrewGroup.ticaret,
+    visible: canManageSecondhand, build: () => const ShOrdersAdminTab(embedded: false),
+  ),
+  CrewSection(
+    id: 'ikinci-el-ayarlari', title: '2. El ayarları', subtitle: 'Ücretler, kargo, öne çıkarma, Pro, süreler, sınırlar', icon: Icons.tune_rounded, group: CrewGroup.ticaret,
+    visible: canManageSecondhand, build: () => const ShSettingsAdminTab(embedded: false),
+  ),
   CrewSection(
     id: 'yolculuklar', title: 'Yolculuk anlaşmazlıkları', subtitle: 'Paylaşımlı yolculuk şikâyetleri', icon: Icons.directions_car_rounded, group: CrewGroup.ticaret,
     visible: _staff, build: () => const RideDisputesScreen(), aliases: const ['/yonetim/yolculuklar'],
@@ -193,6 +239,15 @@ final List<CrewSection> kCrewSections = [
   CrewSection(
     id: 'uye-etkinlikleri', title: 'Üye etkinlikleri', subtitle: 'Onay bekleyen öneriler ve taslaklar', icon: Icons.fact_check_rounded, group: CrewGroup.icerik,
     visible: _admin, build: () => const MemberEventsAdminScreen(), aliases: const ['/yonetim/uye-etkinlikleri'],
+  ),
+  // Bildirim Stüdyosu (notify.send / notify.approve / kurucu). Onay bildirimi bağlantısı: crewLink("/b/bildirim-onaylari").
+  CrewSection(
+    id: 'bildirim-studyosu', title: 'Bildirim stüdyosu', subtitle: 'Üyelere uygulama içi bildirim ve kart: kitle, içerik, zaman, A/B, rapor', icon: Icons.campaign_rounded, group: CrewGroup.icerik,
+    visible: canNotifySend, build: () => const NotifyStudioScreen(),
+  ),
+  CrewSection(
+    id: 'bildirim-onaylari', title: 'Bildirim onayları', subtitle: 'İkinci onay bekleyen gönderimler (dört göz)', icon: Icons.how_to_reg_rounded, group: CrewGroup.icerik,
+    visible: canNotifyApprove, build: () => const NotifyStudioScreen(initialTab: 1), countKey: 'notifyApprovals', aliases: const ['/bildirim-onaylari'], queue: true,
   ),
   CrewSection(
     id: 'kanallar', title: 'Kanallar', subtitle: 'Kanal ve grup kur, düzenle, duyuru gönder', icon: Icons.tag_rounded, group: CrewGroup.icerik,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hadi/core/session.dart';
+import 'package:hadi/panel_ui/crew_ui.dart' show crewCanvas, crewCardColor;
 import 'package:hadi/theme/hadi_colors.dart';
 
 import 'crew_api.dart';
@@ -53,7 +54,26 @@ class CrewShell extends StatelessWidget {
         body: Row(children: [
           _Sidebar(current: tab == 'kuyruklar' || tab == 'tumu' ? tab : current.id, session: s),
           const VerticalDivider(width: 1),
-          Expanded(child: body),
+          // Bölüm, masadaki bir sayfa gibi: en fazla 1120 px, ortada; yanlarda zemin ve ince çizgi.
+          // (Satırlar ekran boyu uzayıp dağılmasın; her bölüm ayrı ayrı daraltılmak zorunda kalmasın.)
+          Expanded(
+            child: ColoredBox(
+              color: crewCanvas(context),
+              child: LayoutBuilder(builder: (context, c) {
+                const max = 1120.0;
+                if (c.maxWidth <= max + 48) return body;
+                return Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: max),
+                    decoration: BoxDecoration(
+                      border: Border.symmetric(vertical: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+                    ),
+                    child: body,
+                  ),
+                );
+              }),
+            ),
+          ),
         ]),
       );
     }
@@ -130,8 +150,7 @@ class _Sidebar extends StatelessWidget {
                       if (g != CrewGroup.genel)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
-                          child: Text(g.label.toUpperCase(),
-                              style: TextStyle(fontSize: 11, letterSpacing: .6, fontWeight: FontWeight.w800, color: HadiColors.ink3)),
+                          child: Text(g.label, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: HadiColors.ink3)),
                         ),
                       for (final x in list.where((x) => x.group == g)) _NavTile(section: x, selected: x.id == current, count: sectionCount(x, d)),
                     ],
@@ -195,10 +214,11 @@ class QueuesPage extends StatelessWidget {
     final s = SessionScope.of(context);
     final list = [for (final x in visibleSections(s)) if (x.queue) x];
     return Scaffold(
+      backgroundColor: crewCanvas(context),
       appBar: AppBar(title: const Text('Kuyruklar')),
       body: ValueListenableBuilder<CrewDash?>(
         valueListenable: crewDashNotifier,
-        builder: (context, d, _) => ListView(padding: const EdgeInsets.fromLTRB(12, 4, 12, 24), children: [
+        builder: (context, d, _) => ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 24), children: [
           if (list.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
@@ -225,13 +245,14 @@ class AllSectionsPage extends StatelessWidget {
     final s = SessionScope.of(context);
     final list = visibleSections(s);
     return Scaffold(
+      backgroundColor: crewCanvas(context),
       appBar: AppBar(
         title: const Text('Tümü'),
         actions: [IconButton(tooltip: 'Çıkış yap', onPressed: () => s.signOut(), icon: const Icon(Icons.logout_rounded))],
       ),
       body: ValueListenableBuilder<CrewDash?>(
         valueListenable: crewDashNotifier,
-        builder: (context, d, _) => ListView(padding: const EdgeInsets.fromLTRB(12, 0, 12, 24), children: [
+        builder: (context, d, _) => ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
           for (final g in CrewGroup.values)
             if (g != CrewGroup.genel && list.any((x) => x.group == g)) ...[
               Padding(
@@ -255,7 +276,9 @@ class _SectionTile extends StatelessWidget {
   Widget build(BuildContext context) => Card(
         elevation: 0,
         margin: const EdgeInsets.only(bottom: 8),
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        color: crewCardColor(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+        clipBehavior: Clip.antiAlias,
         child: ListTile(
           leading: Icon(section.icon, color: HadiColors.aktivite),
           title: Text(section.title, style: const TextStyle(fontWeight: FontWeight.w700)),

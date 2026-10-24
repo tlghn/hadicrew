@@ -13,6 +13,7 @@ import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/theme/hadi_palette.dart' show PaletteScope;
 import 'package:hadi/theme/hadi_theme.dart';
 import 'package:hadi/widgets/hadi_notice.dart';
+import 'package:hadi/panel_ui/crew_theme.dart' show CrewThemeScope;
 
 import 'events_admin.dart' show EventCreatedPage;
 import 'login_screen.dart';
@@ -83,7 +84,10 @@ class _CrewAppState extends State<CrewApp> {
           builder: (context, child) => HadiScaffoldMessenger(
             key: rootMessengerKey,
             child: PaletteScope(
-              child: SecondFactorGate(child: HadiNoticeHost(child: child ?? const SizedBox.shrink())),
+              // Panel teması (alan/düğme yoğunluğu, etiket çakışmasız alanlar): hadi › panel_ui/crew_theme.dart.
+              child: CrewThemeScope(
+                child: SecondFactorGate(child: HadiNoticeHost(child: child ?? const SizedBox.shrink())),
+              ),
             ),
           ),
         ),
