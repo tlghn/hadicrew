@@ -15,6 +15,7 @@ import 'package:hadi/widgets/common.dart';
 import 'package:hadi/features/fun/_placeholders.dart';
 import 'package:hadi/features/candidate/candidate_profile.dart' show CandProfileReview;
 import 'package:hadi/data/privacy_hub_service.dart' show PrivacyHubApi;
+import 'package:hadi/core/ui_gate.dart';
 
 /// Kurucu ve adminler için bekleyen başvurular (üye adayları) ve
 /// değerlendirme paneli. Sözleşme: docs/aday_sozlesme.md (§6 Ajan E).
@@ -362,7 +363,7 @@ class _ReviewPage extends StatelessWidget {
 /// Onay diyaloğu: onaylanırsa yönetim notu ('' olabilir), vazgeçilirse null.
 Future<String?> _askApproveNote(BuildContext context, String firstName) async {
   final noteCtrl = TextEditingController();
-  final ok = await showDialog<bool>(
+  final ok = await uiOnce(context, () => showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(scrollable: true, 
       title: const Text('Başvuruyu onayla'),
@@ -379,7 +380,7 @@ Future<String?> _askApproveNote(BuildContext context, String firstName) async {
         ),
       ],
     ),
-  );
+  ));
   final note = noteCtrl.text.trim();
   // Diyalog kapanış animasyonu bitene kadar TextField denetleyiciyi kullanır.
   Future<void>.delayed(const Duration(milliseconds: 500), noteCtrl.dispose);
@@ -388,7 +389,7 @@ Future<String?> _askApproveNote(BuildContext context, String firstName) async {
 
 /// Ret diyaloğu: gerekçe ya da vazgeçilirse null.
 Future<String?> _askRejectNote(BuildContext context, String firstName) =>
-    showDialog<String>(context: context, builder: (_) => _RejectDialog(name: firstName.isEmpty ? 'Aday' : firstName));
+    uiOnce(context, () => showDialog<String>(context: context, builder: (_) => _RejectDialog(name: firstName.isEmpty ? 'Aday' : firstName)));
 
 /// Başka ekranlardan (ör. salondaki "Aday özeti") başvurunun değerlendirme sayfasını açar.
 Future<void> openApplicationReview(BuildContext context, String uid) async {

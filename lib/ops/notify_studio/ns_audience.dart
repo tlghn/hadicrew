@@ -13,6 +13,7 @@ import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 
 import 'ns_api.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 class NsAudienceEditor extends StatefulWidget {
   const NsAudienceEditor({super.key, required this.draft, required this.onChanged, this.onCount});
@@ -142,7 +143,7 @@ class _NsAudienceEditorState extends State<NsAudienceEditor> {
 
   // ---------------------------------------------------------------- üye arama
 
-  Future<MemberProfile?> _pickMember() => showDialog<MemberProfile>(context: context, builder: (_) => const _MemberSearchDialog());
+  Future<MemberProfile?> _pickMember() => uiOnce(context, () => showDialog<MemberProfile>(context: context, builder: (_) => const _MemberSearchDialog()));
 
   @override
   Widget build(BuildContext context) {
@@ -370,7 +371,7 @@ class _NsAudienceEditorState extends State<NsAudienceEditor> {
             ? null
             : () async {
                 final ctl = TextEditingController();
-                final name = await showDialog<String>(
+                final name = await uiOnce(context, () => showDialog<String>(
                   context: context,
                   builder: (c) => AlertDialog(
                     title: const Text('Kitleyi kaydet'),
@@ -380,7 +381,7 @@ class _NsAudienceEditorState extends State<NsAudienceEditor> {
                       FilledButton(onPressed: () => Navigator.pop(c, ctl.text.trim()), child: const Text('Kaydet')),
                     ],
                   ),
-                );
+                ));
                 if (name == null || name.length < 2 || !mounted) return;
                 final s = SessionScope.read(context).services;
                 try {
@@ -434,7 +435,7 @@ class _RuleRow extends StatelessWidget {
   List<String> get vals => [for (final x in (rule['v'] is List ? rule['v'] as List : const [])) '$x'];
 
   Future<void> _multi(BuildContext context, String title, List<String> options, {bool searchable = true}) async {
-    final r = await showDialog<List<String>>(context: context, builder: (_) => _MultiPick(title: title, options: options, selected: vals.toSet(), searchable: searchable));
+    final r = await uiOnce(context, () => showDialog<List<String>>(context: context, builder: (_) => _MultiPick(title: title, options: options, selected: vals.toSet(), searchable: searchable)));
     if (r != null) onChanged({...rule, 'v': r});
   }
 
@@ -456,7 +457,7 @@ class _RuleRow extends StatelessWidget {
         value = _chipsBtn(context, vals, 'Etkinlik türü seç', () => _multi(context, 'Etkinlik türleri', const ['Konser', 'Doğa yürüyüşü', 'Atölye', 'Yemek', 'Kahvaltı', 'Oyun gecesi', 'Spor', 'Gezi', 'Söyleşi', 'Parti', 'Kitap kulübü', 'Film gecesi']));
       case 'community':
         value = _chipsBtn(context, [for (final v in vals) commNames[v] ?? v], 'Topluluk seç', () async {
-          final r = await showDialog<Map<String, String>>(context: context, builder: (_) => _CommunityPick(selected: vals.toSet()));
+          final r = await uiOnce(context, () => showDialog<Map<String, String>>(context: context, builder: (_) => _CommunityPick(selected: vals.toSet())));
           if (r != null) {
             commNames.addAll(r);
             onChanged({...rule, 'v': r.keys.toList()});

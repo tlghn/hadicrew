@@ -11,6 +11,7 @@ import 'package:hadi/panel_ui/crew_ui.dart';
 import 'ns_api.dart';
 import 'ns_audience.dart';
 import 'ns_previews.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 String _errText(Object e) => '$e'.replaceFirst('AppFailure: ', '');
 
@@ -327,9 +328,9 @@ class _NsComposerPageState extends State<NsComposerPage> {
               label: Text(d.at == null ? 'Zaman seç' : _fmt(d.at!)),
               onPressed: () async {
                 final now = DateTime.now();
-                final day = await showDatePicker(context: context, firstDate: now, lastDate: now.add(const Duration(days: 90)), initialDate: d.at ?? now);
+                final day = await uiOnce(context, () => showDatePicker(context: context, firstDate: now, lastDate: now.add(const Duration(days: 90)), initialDate: d.at ?? now));
                 if (day == null || !mounted) return;
-                final tm = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(d.at ?? now.add(const Duration(hours: 1))));
+                final tm = await uiOnce(context, () => showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(d.at ?? now.add(const Duration(hours: 1)))));
                 if (tm == null) return;
                 setState(() => d.at = DateTime(day.year, day.month, day.day, tm.hour, tm.minute));
               },
@@ -345,7 +346,7 @@ class _NsComposerPageState extends State<NsComposerPage> {
               icon: const Icon(Icons.schedule_rounded, size: 18),
               label: Text('Saat ${_two(d.hour)}:${_two(d.minute)}'),
               onPressed: () async {
-                final tm = await showTimePicker(context: context, initialTime: TimeOfDay(hour: d.hour, minute: d.minute));
+                final tm = await uiOnce(context, () => showTimePicker(context: context, initialTime: TimeOfDay(hour: d.hour, minute: d.minute)));
                 if (tm != null) setState(() => (d.hour = tm.hour, d.minute = tm.minute));
               },
             ),
@@ -354,7 +355,7 @@ class _NsComposerPageState extends State<NsComposerPage> {
               label: Text(d.until == null ? 'Bitiş yok' : 'Bitiş ${_fmt(d.until!).split(' ').first}'),
               onPressed: () async {
                 final now = DateTime.now();
-                final day = await showDatePicker(context: context, firstDate: now, lastDate: now.add(const Duration(days: 365)), initialDate: d.until ?? now.add(const Duration(days: 30)));
+                final day = await uiOnce(context, () => showDatePicker(context: context, firstDate: now, lastDate: now.add(const Duration(days: 365)), initialDate: d.until ?? now.add(const Duration(days: 30))));
                 setState(() => d.until = day == null ? null : DateTime(day.year, day.month, day.day, 23, 59));
               },
             ),

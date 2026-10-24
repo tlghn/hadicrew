@@ -11,6 +11,7 @@ import 'package:hadi/data/store_service.dart' show StoreService, kStoreAudiences
 import 'package:hadi/theme/hadi_colors.dart';
 
 import 'store_admin_common.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 StoreService _svc(BuildContext context) => StoreService.of(SessionScope.read(context).services);
 
@@ -111,7 +112,7 @@ class _StoreCampaignsAdminTabState extends State<StoreCampaignsAdminTab> {
           onToggle: (v) => _run('${c['id']}', () => _svc(context).adminCampaignToggle('${c['id']}', v), v ? 'Kampanya başladı.' : 'Kampanya durduruldu.'),
           onEdit: () => _edit(c),
           onDelete: () async {
-            final ok = await showDialog<bool>(
+            final ok = await uiOnce(context, () => showDialog<bool>(
               context: context,
               builder: (d) => AlertDialog(
                 title: const Text('Kampanya silinsin mi?'),
@@ -121,7 +122,7 @@ class _StoreCampaignsAdminTabState extends State<StoreCampaignsAdminTab> {
                   FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Sil')),
                 ],
               ),
-            );
+            ));
             if (ok == true && context.mounted) await _run('${c['id']}', () => _svc(context).adminCampaignDelete('${c['id']}'), 'Silindi.');
           },
         ),
@@ -297,9 +298,9 @@ class _CampaignEditorState extends State<_CampaignEditor> {
   Future<void> _pickDate(bool start) async {
     final now = DateTime.now();
     final init = (start ? _starts : _ends) ?? now;
-    final d = await showDatePicker(context: context, initialDate: init, firstDate: now.subtract(const Duration(days: 1)), lastDate: now.add(const Duration(days: 730)));
+    final d = await uiOnce(context, () => showDatePicker(context: context, initialDate: init, firstDate: now.subtract(const Duration(days: 1)), lastDate: now.add(const Duration(days: 730))));
     if (d == null || !mounted) return;
-    final tm = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(init));
+    final tm = await uiOnce(context, () => showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(init)));
     final v = DateTime(d.year, d.month, d.day, tm?.hour ?? 0, tm?.minute ?? 0);
     setState(() => start ? _starts = v : _ends = v);
   }

@@ -18,6 +18,7 @@ import 'package:hadi/widgets/hadi_sheet.dart';
 import 'package:hadi/widgets/reason_dialog.dart';
 import 'package:hadi/widgets/skeleton.dart';
 import 'package:hadi/features/courier/courier_widgets.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 class CourierAdminTab extends StatelessWidget {
   const CourierAdminTab({super.key, this.embedded = true});
@@ -194,14 +195,14 @@ class _ReviewState extends State<_Review> {
     String? number;
     if (ok && !_identityDocs.contains(docId)) {
       final c = TextEditingController();
-      number = await showDialog<String>(
+      number = await uiOnce(context, () => showDialog<String>(
         context: context,
         builder: (d) => AlertDialog(
           title: const Text('Belge numarası'),
           content: TextField(controller: c, decoration: const InputDecoration(labelText: 'Belge no (isteğe bağlı; yalnızca son 3 hanesi saklanır)')),
           actions: [FilledButton(onPressed: () => Navigator.pop(d, c.text.trim()), child: const Text('Tamam'))],
         ),
-      );
+      ));
       if (!mounted) return;
     }
     final r = await _call(context, 'renewDecide', {'uid': widget.uid, 'docId': docId, 'ok': ok, 'reason': reason, if (number != null && number.isNotEmpty) 'number': number});
@@ -456,14 +457,14 @@ class _PayoutsState extends State<_Payouts> {
 
   Future<void> _paid(Map<String, dynamic> p) async {
     final c = TextEditingController();
-    final ref = await showDialog<String>(
+    final ref = await uiOnce(context, () => showDialog<String>(
       context: context,
       builder: (dc) => AlertDialog(
         title: const Text('Ödendi olarak işaretle'),
         content: TextField(controller: c, autofocus: true, decoration: const InputDecoration(labelText: 'Havale/EFT referansı')),
         actions: [TextButton(onPressed: () => Navigator.pop(dc), child: const Text('Vazgeç')), FilledButton(onPressed: () => Navigator.pop(dc, c.text.trim()), child: const Text('Kaydet'))],
       ),
-    );
+    ));
     if (ref == null || ref.length < 3 || !mounted) return;
     if (await _call(context, 'payoutPaid', {'id': p['id'], 'bankRef': ref}) != null) await _load();
   }

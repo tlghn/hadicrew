@@ -10,6 +10,7 @@ import 'package:hadi/widgets/hadi_sheet.dart';
 import 'package:hadi/widgets/reason_dialog.dart';
 import 'package:hadi/widgets/skeleton.dart';
 import 'package:hadi/features/moderation/mod_api.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 Future<void> openModSheet(BuildContext context, {required String uid, required String name}) => showHadiSheet<void>(
       context: context,
@@ -76,7 +77,7 @@ class _ModSheetState extends State<_ModSheet> {
   }
 
   Future<void> _blockUser() async {
-    final r = await showDialog<_BlockInput>(context: context, builder: (_) => _BlockDialog(name: widget.name));
+    final r = await uiOnce(context, () => showDialog<_BlockInput>(context: context, builder: (_) => _BlockDialog(name: widget.name)));
     if (r == null || !mounted) return;
     await _run('block', {'minutes': r.minutes, 'reason': r.reason, if (r.details.isNotEmpty) 'details': r.details},
         r.minutes == null ? 'Hesap süresiz bloklandı.' : 'Hesap bloklandı.');

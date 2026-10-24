@@ -11,6 +11,7 @@ import 'package:hadi/data/models.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/instant.dart';
 import 'package:hadi/widgets/toast.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 Color _statusColor(EventProposal p) => switch (p.status) {
       'approved' || 'accepted' || 'done' => HadiColors.dostluk,
@@ -146,7 +147,7 @@ class _MemberEventsAdminScreenState extends State<MemberEventsAdminScreen> {
   }
 
   Future<void> _approve(EventProposal p) async {
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('Yayımlansın mı?'),
@@ -156,14 +157,14 @@ class _MemberEventsAdminScreenState extends State<MemberEventsAdminScreen> {
           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Onayla ve yayımla')),
         ],
       ),
-    );
+    ));
     if (ok != true || !mounted) return;
     await _run(p.id, () => SessionScope.read(context).services.events.approveDraft(p.id), 'Etkinlik yayımlandı.');
   }
 
   Future<String?> _askText(String title, String hint, {bool required = true}) async {
     final ctrl = TextEditingController();
-    final r = await showDialog<String>(
+    final r = await uiOnce(context, () => showDialog<String>(
       context: context,
       builder: (c) => AlertDialog(
         title: Text(title),
@@ -179,7 +180,7 @@ class _MemberEventsAdminScreenState extends State<MemberEventsAdminScreen> {
           ),
         ],
       ),
-    );
+    ));
     ctrl.dispose();
     return r;
   }

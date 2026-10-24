@@ -9,6 +9,7 @@ import 'package:hadi/features/messages/bot_widgets.dart' show BotPicker, saveBot
 import 'package:hadi/features/templates/template_gallery.dart' show TemplateGalleryScreen;
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/instant.dart' show InlineError, ListSkeleton;
+import 'package:hadi/core/ui_gate.dart';
 
 /// Kanallar: kanal / grup kur, düzenle, bot yerleştir, duyuru kanallarına yaz. (Uygulamada yalnızca üye görünümü var.)
 class ChannelsAdminScreen extends StatefulWidget {
@@ -48,7 +49,7 @@ class _ChannelsAdminScreenState extends State<ChannelsAdminScreen> {
 
   Future<void> _bots(Chat c) async {
     List<String>? ids;
-    final save = await showModalBottomSheet<bool>(
+    final save = await uiOnce(context, () => showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
       useSafeArea: true,
@@ -64,7 +65,7 @@ class _ChannelsAdminScreenState extends State<ChannelsAdminScreen> {
           SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(x, true), child: const Text('Kaydet'))),
         ]),
       ),
-    );
+    ));
     if (save != true || !mounted) return;
     final err = await saveBotPlacement(SessionScope.read(context), c.botEnv, ids);
     if (mounted) _toast(err ?? 'Botlar güncellendi.');
@@ -72,7 +73,7 @@ class _ChannelsAdminScreenState extends State<ChannelsAdminScreen> {
 
   Future<void> _announce(Chat c) async {
     final ctrl = TextEditingController();
-    final text = await showDialog<String>(
+    final text = await uiOnce(context, () => showDialog<String>(
       context: context,
       builder: (d) => AlertDialog(
         title: Text('${c.emoji} ${c.title}'),
@@ -92,7 +93,7 @@ class _ChannelsAdminScreenState extends State<ChannelsAdminScreen> {
           FilledButton(onPressed: () => Navigator.pop(d, ctrl.text.trim()), child: const Text('Gönder')),
         ],
       ),
-    );
+    ));
     ctrl.dispose();
     if (text == null || text.isEmpty || !mounted) return;
     final s = SessionScope.read(context);

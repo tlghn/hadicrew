@@ -9,6 +9,7 @@ import '../ops/admin/hp_economy_admin.dart' show showHpGrantSheet;
 import '../ops/admin/roles_admin.dart' show openUserRolesSheet, pickMemberForRole;
 import '../ops/members/staff_premium.dart' show staffPremiumSheet;
 import '../ops/moderation/mod_sheet.dart' show openModSheet;
+import 'package:hadi/core/ui_gate.dart';
 
 /// Üye işlemleri: üyeyi bul, ardından rol / Premium / Elmas / moderasyon. Her işlem gerekçe ister ve kayda geçer
 /// (sunucu). Uygulamada bu işlemler yoktur.
@@ -36,7 +37,7 @@ class _MemberToolsScreenState extends State<MemberToolsScreen> {
 
   void _actions(MemberProfile m) {
     final s = SessionScope.read(context);
-    showModalBottomSheet<void>(
+    uiOnce(context, () => showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       useSafeArea: true,
@@ -93,7 +94,7 @@ class _MemberToolsScreenState extends State<MemberToolsScreen> {
             ),
         ]),
       ),
-    );
+    ));
   }
 
   @override

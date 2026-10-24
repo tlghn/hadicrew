@@ -14,6 +14,7 @@ import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/core/app_lock.dart';
 import 'package:hadi/widgets/place_picker.dart';
 import 'package:hadi/features/fun/_placeholders.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 String _when(DateTime? d) => d == null
     ? ''
@@ -63,7 +64,7 @@ class _AddressReviewAdminTabState extends State<AddressReviewAdminTab> {
 
   Future<void> _approve(AddressReview r) async {
     final il = TextEditingController(), ilce = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('Adresi onayla'),
@@ -95,14 +96,14 @@ class _AddressReviewAdminTabState extends State<AddressReviewAdminTab> {
           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Onayla')),
         ],
       ),
-    );
+    ));
     if (ok != true) return;
     await _run(r.uid, () => AddressService.instance.approve(r.uid, il: il.text.trim(), ilce: ilce.text.trim()), 'Adres onaylandı.');
   }
 
   Future<void> _reject(AddressReview r) async {
     final why = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(scrollable: true, 
         title: const Text('Belgeyi reddet'),
@@ -116,7 +117,7 @@ class _AddressReviewAdminTabState extends State<AddressReviewAdminTab> {
           FilledButton(style: FilledButton.styleFrom(backgroundColor: HadiColors.fillForWhite(HadiColors.error), foregroundColor: Colors.white), onPressed: () => Navigator.pop(c, true), child: const Text('Reddet')),
         ],
       ),
-    );
+    ));
     if (ok != true) return;
     await _run(r.uid, () => AddressService.instance.reject(r.uid, why.text.trim()), 'Belge reddedildi.');
   }
@@ -248,7 +249,7 @@ class _KahveSafetyAdminTabState extends State<KahveSafetyAdminTab> {
 
   Future<void> _decide(KahveSafetyItem it, String decision) async {
     final note = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(scrollable: true, 
         title: Text(decision == 'clear' ? 'Eşleşmeye geri al' : 'Kahve Eşleşmesi dışında tut'),
@@ -263,7 +264,7 @@ class _KahveSafetyAdminTabState extends State<KahveSafetyAdminTab> {
           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Kaydet')),
         ],
       ),
-    );
+    ));
     if (ok != true) return;
     setState(() => _busy = it.uid);
     try {

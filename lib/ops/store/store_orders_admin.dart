@@ -17,6 +17,7 @@ import 'package:hadi/widgets/skeleton.dart';
 import 'store_admin_common.dart';
 import 'store_preview_bridge.dart';
 import 'store_web_file.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 class StoreOrdersAdminTab extends StatefulWidget {
   const StoreOrdersAdminTab({super.key, this.embedded = true});
@@ -310,7 +311,7 @@ class _OrderDetailState extends State<_OrderDetail> {
   Future<void> _toProduction() => _update('in_production', done: 'Sipariş üretime alındı.');
 
   Future<void> _delivered() async {
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Teslim edildi olarak işaretle'),
@@ -320,7 +321,7 @@ class _OrderDetailState extends State<_OrderDetail> {
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Teslim edildi')),
         ],
       ),
-    );
+    ));
     if (ok == true) await _update('delivered', done: 'Teslim edildi olarak işaretlendi.');
   }
 

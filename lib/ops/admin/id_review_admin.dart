@@ -14,6 +14,7 @@ import 'event_policy_admin.dart' show EventIdRequirementCard;
 
 import 'package:hadi/widgets/net_fallback.dart';
 import 'package:hadi/features/fun/_placeholders.dart';
+import 'package:hadi/core/ui_gate.dart';
 class IdReviewAdminTab extends StatefulWidget {
   const IdReviewAdminTab({super.key, this.embedded = true});
   final bool embedded;
@@ -65,7 +66,7 @@ class _IdReviewAdminTabState extends State<IdReviewAdminTab> {
     final names = r.userName.split(' ');
     final first = TextEditingController(text: names.length > 1 ? names.sublist(0, names.length - 1).join(' ') : r.userName);
     final last = TextEditingController(text: names.length > 1 ? names.last : '');
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(scrollable: true, 
         title: const Text('Kimliği onayla'),
@@ -84,7 +85,7 @@ class _IdReviewAdminTabState extends State<IdReviewAdminTab> {
           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Onayla')),
         ],
       ),
-    );
+    ));
     final f = first.text.trim(), l = last.text.trim();
     first.dispose();
     last.dispose();
@@ -94,7 +95,7 @@ class _IdReviewAdminTabState extends State<IdReviewAdminTab> {
 
   Future<void> _reject(IdReviewItem r) async {
     final why = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(scrollable: true, 
         title: const Text('Reddet'),
@@ -108,7 +109,7 @@ class _IdReviewAdminTabState extends State<IdReviewAdminTab> {
           FilledButton(style: FilledButton.styleFrom(backgroundColor: HadiColors.fillForWhite(HadiColors.error), foregroundColor: Colors.white), onPressed: () => Navigator.pop(c, true), child: const Text('Reddet')),
         ],
       ),
-    );
+    ));
     final reason = why.text.trim();
     why.dispose();
     if (ok != true) return;
@@ -175,10 +176,10 @@ class _IdReviewAdminTabState extends State<IdReviewAdminTab> {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: GestureDetector(
-                onTap: () => showDialog<void>(
+                onTap: () => uiOnce(context, () => showDialog<void>(
                   context: context,
                   builder: (_) => Dialog(child: InteractiveViewer(child: CachedNetworkImage(imageUrl: r.handheldUrl!, errorWidget: NetImageFallback.builder))),
-                ),
+                )),
                 child: CachedNetworkImage(imageUrl: r.handheldUrl!, height: 240, width: double.infinity, fit: BoxFit.cover, errorWidget: NetImageFallback.builder),
               ),
             ),

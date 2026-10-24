@@ -14,6 +14,7 @@ import 'package:hadi/widgets/skeleton.dart';
 
 import 'store_admin_common.dart';
 import 'store_preview_bridge.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 class StoreProductsAdminTab extends StatefulWidget {
   const StoreProductsAdminTab({super.key, this.embedded = true});
@@ -442,7 +443,7 @@ class _StoreProductEditorState extends State<StoreProductEditor> {
   }
 
   Future<void> _delete() async {
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(_builtin ? 'Ürünü pasifleştir' : 'Ürünü sil'),
@@ -458,7 +459,7 @@ class _StoreProductEditorState extends State<StoreProductEditor> {
           ),
         ],
       ),
-    );
+    ));
     if (ok != true || !mounted) return;
     setState(() => _busy = true);
     try {
@@ -475,7 +476,7 @@ class _StoreProductEditorState extends State<StoreProductEditor> {
 
   Future<bool> _confirmLeave() async {
     if (!_dirty) return true;
-    final r = await showDialog<bool>(
+    final r = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Kaydedilmemiş değişiklikler'),
@@ -485,7 +486,7 @@ class _StoreProductEditorState extends State<StoreProductEditor> {
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Çık')),
         ],
       ),
-    );
+    ));
     return r == true;
   }
 
@@ -1353,10 +1354,10 @@ class _StoreTemplateEditorState extends State<StoreTemplateEditor> {
 // ------------------------------------------------------------------ renk seçici
 
 /// Basit renk seçici: HADİ renkleri + yaygın kumaş renkleri, ton/doygunluk/parlaklık kaydırıcıları ve hex kodu.
-Future<Color?> showStoreColorPicker(BuildContext context, Color initial) => showDialog<Color>(
+Future<Color?> showStoreColorPicker(BuildContext context, Color initial) => uiOnce(context, () => showDialog<Color>(
       context: context,
       builder: (_) => _ColorPickerDialog(initial: initial),
-    );
+    ));
 
 class _ColorPickerDialog extends StatefulWidget {
   const _ColorPickerDialog({required this.initial});

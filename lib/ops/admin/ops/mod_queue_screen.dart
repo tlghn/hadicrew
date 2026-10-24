@@ -21,6 +21,7 @@ import 'package:hadi/widgets/hadi_sheet.dart';
 import 'package:hadi/widgets/instant.dart' show InlineError, ListSkeleton;
 import 'package:hadi/widgets/net_fallback.dart';
 import 'package:hadi/data/ops_api.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 /// Tam ekran (Şikayetler ekranından ve Operasyon merkezinden açılır).
 class ModQueueScreen extends StatelessWidget {
@@ -530,7 +531,7 @@ class _AppealsTabState extends State<_AppealsTab> with AutomaticKeepAliveClientM
 
   Future<void> _decide(Map<String, dynamic> it, bool accept) async {
     final note = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: Text(accept ? 'İtirazı kabul et' : 'İtirazı reddet'),
@@ -545,7 +546,7 @@ class _AppealsTabState extends State<_AppealsTab> with AutomaticKeepAliveClientM
           FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(accept ? 'Kabul et' : 'Reddet')),
         ],
       ),
-    );
+    ));
     if (ok != true) return;
     try {
       await OpsApi.mod('appealDecide', {'actionId': it['id'], 'accept': accept, 'note': note.text.trim()});

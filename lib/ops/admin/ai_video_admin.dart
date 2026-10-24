@@ -16,6 +16,7 @@ import 'package:hadi/widgets/net_fallback.dart';
 import 'package:hadi/core/app_lock.dart';
 import 'package:hadi/features/fun/_placeholders.dart';
 import 'package:hadi/widgets/skeleton.dart';
+import 'package:hadi/core/ui_gate.dart';
 /// Kurucu paneli › AI video (ve /yonetim/ai-video: kurucu ya da "aivideo.manage" yetkisi).
 /// Şablon videoları ekler, açar/kapatır, siler; sağlayıcı ayarlarını düzenler (functions/src/ai_video.ts).
 /// Fiyat: Fiyatlar sekmesinde "AI video" (ai_video). Sağlayıcı anahtarı (fal.ai; yedek Replicate): API anahtarları
@@ -111,7 +112,7 @@ class _AiVideoAdminTabState extends State<AiVideoAdminTab> {
       }, ok: 'Kaydedildi');
 
   Future<void> _addOrEdit([AiVideoTemplate? t]) async {
-    final r = await showDialog<_TplResult>(context: context, builder: (_) => _TemplateDialog(initial: t));
+    final r = await uiOnce(context, () => showDialog<_TplResult>(context: context, builder: (_) => _TemplateDialog(initial: t)));
     if (r == null) return;
     await _run('tpl', () async {
       String? videoPath, thumbPath;
@@ -200,7 +201,7 @@ class _AiVideoAdminTabState extends State<AiVideoAdminTab> {
                             IconButton(
                               tooltip: 'İzle',
                               icon: const Icon(Icons.play_circle_outline_rounded),
-                              onPressed: () => showDialog<void>(context: context, builder: (_) => _PreviewDialog(url: t.previewUrl!)),
+                              onPressed: () => uiOnce(context, () => showDialog<void>(context: context, builder: (_) => _PreviewDialog(url: t.previewUrl!))),
                             ),
                           Switch(
                             value: t.enabled,
@@ -214,7 +215,7 @@ class _AiVideoAdminTabState extends State<AiVideoAdminTab> {
                             onPressed: _busy != null
                                 ? null
                                 : () async {
-                                    final ok = await showDialog<bool>(
+                                    final ok = await uiOnce(context, () => showDialog<bool>(
                                       context: context,
                                       builder: (c) => AlertDialog(
                                         title: const Text('Şablon silinsin mi?'),
@@ -224,7 +225,7 @@ class _AiVideoAdminTabState extends State<AiVideoAdminTab> {
                                           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Sil')),
                                         ],
                                       ),
-                                    );
+                                    ));
                                     if (ok == true) await _run('tpl', () => _svc.templateDelete(t.id), ok: 'Silindi');
                                   },
                           ),

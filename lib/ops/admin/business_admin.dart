@@ -14,6 +14,7 @@ import 'package:hadi/core/app_lock.dart';
 import 'package:hadi/widgets/skeleton.dart';
 import 'package:hadi/features/fun/_placeholders.dart';
 import 'commerce_config_admin.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 String _when(DateTime? d) => d == null
     ? ''
@@ -25,7 +26,7 @@ Widget _empty(String text) => ListView(children: [
 
 Future<String?> _ask(BuildContext context, {required String title, required String label, String? hint, String action = 'Tamam', bool danger = false}) async {
   final c = TextEditingController();
-  final ok = await showDialog<bool>(
+  final ok = await uiOnce(context, () => showDialog<bool>(
     context: context,
     builder: (d) => AlertDialog(scrollable: true, 
       title: Text(title),
@@ -39,7 +40,7 @@ Future<String?> _ask(BuildContext context, {required String title, required Stri
         ),
       ],
     ),
-  );
+  ));
   return ok == true ? c.text.trim() : null;
 }
 
@@ -124,7 +125,7 @@ class _ApplicationsState extends State<_Applications> with _Runner {
       if (e is AppFailure && mounted) snack(e.message);
       return <String, String?>{};
     });
-    await showDialog<void>(
+    await uiOnce(context, () => showDialog<void>(
       context: context,
       builder: (d) => AlertDialog(
         title: const Text('Belgeler (15 dk geçerli bağlantı)'),
@@ -149,7 +150,7 @@ class _ApplicationsState extends State<_Applications> with _Runner {
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(d), child: const Text('Kapat'))],
       ),
-    );
+    ));
   }
 
   @override
@@ -340,7 +341,7 @@ class _PayoutsState extends State<_Payouts> with _Runner {
   Future<void> _record() async {
     final uid = TextEditingController(), tl = TextEditingController(), no = TextEditingController(), ref = TextEditingController();
     final date = TextEditingController(text: DateTime.now().toIso8601String().substring(0, 10));
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(scrollable: true, 
         title: const Text('Ödeme kaydet'),
@@ -365,7 +366,7 @@ class _PayoutsState extends State<_Payouts> with _Runner {
           FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Kaydet')),
         ],
       ),
-    );
+    ));
     if (ok != true) return;
     final amount = double.tryParse(tl.text.replaceAll(',', '.').trim()) ?? 0;
     await run('record', () async {
@@ -512,7 +513,7 @@ class _DisputesState extends State<_Disputes> with _Runner {
     var action = 'release';
     var pct = 50.0;
     final note = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (d) => StatefulBuilder(
         builder: (d, set) => AlertDialog(scrollable: true, 
@@ -543,7 +544,7 @@ class _DisputesState extends State<_Disputes> with _Runner {
           ],
         ),
       ),
-    );
+    ));
     if (ok != true) return;
     await run(o.id, () => BusinessService.instance.resolveOrder(o.id, action: action, pct: pct.round(), note: note.text.trim()), 'Karar uygulandı.', _load);
   }

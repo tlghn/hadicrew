@@ -13,6 +13,7 @@ import 'package:hadi/widgets/skeleton.dart';
 import 'package:hadi/features/moderation/ai_appeals_tab.dart' show AiAppealsTab;
 import 'package:hadi/features/moderation/mod_api.dart';
 import 'mod_sheet.dart' show ModLogList, openModSheet;
+import 'package:hadi/core/ui_gate.dart';
 
 class ModCenterScreen extends StatelessWidget {
   const ModCenterScreen({super.key, this.embedded = false});
@@ -180,7 +181,7 @@ class _AppealsTabState extends State<_AppealsTab> with AutomaticKeepAliveClientM
   }
 
   Future<void> _decide(Map<String, dynamic> x, bool accept) async {
-    final note = await showDialog<String>(context: context, builder: (_) => _NoteDialog(accept: accept, name: '${x['name'] ?? 'Üye'}'));
+    final note = await uiOnce(context, () => showDialog<String>(context: context, builder: (_) => _NoteDialog(accept: accept, name: '${x['name'] ?? 'Üye'}')));
     if (note == null || !mounted) return;
     try {
       await ModApi.call('appealDecide', {'id': x['id'], 'decision': accept ? 'accept' : 'reject', 'note': note});

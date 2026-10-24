@@ -8,6 +8,7 @@ import 'package:hadi/data/callables.dart';
 import 'package:hadi/data/firebase_services.dart' show kFunctionsRegion;
 import 'package:hadi/data/models.dart' show AppFailure;
 import 'package:hadi/theme/hadi_colors.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 Future<Map<String, Object?>> _call(Map<String, Object?> data) async {
   try {
@@ -59,7 +60,7 @@ class _EventIdRequirementCardState extends State<EventIdRequirementCard> {
   Future<void> _change(String next) async {
     if (next == _value) return;
     final reason = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         scrollable: true,
@@ -78,7 +79,7 @@ class _EventIdRequirementCardState extends State<EventIdRequirementCard> {
           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Uygula')),
         ],
       ),
-    );
+    ));
     final why = reason.text.trim();
     reason.dispose();
     if (ok != true || !mounted) return;

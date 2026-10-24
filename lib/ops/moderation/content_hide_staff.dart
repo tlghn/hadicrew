@@ -8,6 +8,7 @@ import 'package:hadi/features/feed/content_hide.dart';
 import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/hadi_sheet.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 /// Gönderi "…" menüsüne eklenecek satır: "Gizle (tüm uygulamada)" / "Gizlemeyi kaldır".
 /// Yetki yoksa boş liste döner. [sheet]: açık menünün context'i (kapatılır).
@@ -87,7 +88,7 @@ Future<bool> hideContentFlow(BuildContext context, HideTarget t) async {
 Future<bool> unhideContentFlow(BuildContext context, HideTarget t) async {
   final services = SessionScope.read(context).services;
   final messenger = ScaffoldMessenger.of(context);
-  final ok = await showDialog<bool>(
+  final ok = await uiOnce(context, () => showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
       title: const Text('Gizleme kaldırılsın mı?'),
@@ -97,7 +98,7 @@ Future<bool> unhideContentFlow(BuildContext context, HideTarget t) async {
         FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Kaldır')),
       ],
     ),
-  );
+  ));
   if (ok != true) return false;
   try {
     await ContentHide.unhide(services, t);
@@ -130,7 +131,7 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
   /// "Gizli kalsın" / "Geri aç" (isteğe bağlı not).
   Future<void> _decide(HiddenItem x, {required bool keep}) async {
     final note = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
         title: Text(keep ? 'Gizli kalsın mı?' : 'Geri açılsın mı?'),
@@ -146,7 +147,7 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
           FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(keep ? 'Gizli kalsın' : 'Geri aç')),
         ],
       ),
-    );
+    ));
     final text = note.text.trim();
     note.dispose();
     if (ok != true || !mounted) return;

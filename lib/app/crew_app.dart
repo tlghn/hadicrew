@@ -19,6 +19,7 @@ import 'events_admin.dart' show EventCreatedPage;
 import 'login_screen.dart';
 import 'sections.dart';
 import 'shell.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 /// HADİ Crew kökü: oturum (uygulamayla aynı Session; ekip araçları açık), tema, giriş, ekip kapısı ve yönlendirme.
 class CrewApp extends StatefulWidget {
@@ -34,7 +35,7 @@ class _CrewAppState extends State<CrewApp> {
 
   late final GoRouter _router = GoRouter(
     // Pencere / alt sayfa açıkken tarayıcının geri tuşu önce onu kapatır (hadi/core/web_url.dart).
-    observers: [WebPopupBackObserver()],
+    observers: [UiGateObserver(), WebPopupBackObserver()],
     refreshListenable: _session,
     redirect: (context, state) {
       // Bildirim bağlantıları (functions/src/crew_link.ts): eski uygulama yolları bölüme çevrilir.

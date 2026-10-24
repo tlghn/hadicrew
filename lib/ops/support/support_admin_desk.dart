@@ -18,6 +18,7 @@ import 'package:hadi/features/support/support_status.dart' show supportStatusSty
 import 'package:hadi/features/support/support_tickets_member.dart' show DeskStatusChip, TicketThreadScreen;
 import 'package:hadi/core/service_switches.dart';
 import 'desk_csat_strip.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 String _err(Object e, String fb) => e is AppFailure ? e.message : fb;
 
@@ -141,7 +142,7 @@ class _QueueState extends State<_Queue> {
   }
 
   Future<void> _assign(DeskTicket t) async {
-    final to = await showModalBottomSheet<String>(
+    final to = await uiOnce(context, () => showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       builder: (sc) => ListView(shrinkWrap: true, padding: const EdgeInsets.only(bottom: 16), children: [
@@ -149,7 +150,7 @@ class _QueueState extends State<_Queue> {
         ListTile(leading: const Icon(Icons.pan_tool_alt_rounded), title: const Text('Üstüme al'), onTap: () => Navigator.pop(sc, '')),
         for (final s in _staff) ListTile(leading: const Icon(Icons.support_agent_rounded), title: Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis), onTap: () => Navigator.pop(sc, s.uid)),
       ]),
-    );
+    ));
     if (to == null) return;
     try {
       final n = await SupportDesk.instance.assign(t.id, to: to.isEmpty ? null : to);
@@ -394,7 +395,7 @@ class _CannedEditorState extends State<_CannedEditor> {
     final cur = i == null ? null : _items![i];
     final title = TextEditingController(text: cur?.title ?? '');
     final text = TextEditingController(text: cur?.text ?? '');
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
         scrollable: true,
@@ -408,7 +409,7 @@ class _CannedEditorState extends State<_CannedEditor> {
           FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Kaydet')),
         ],
       ),
-    );
+    ));
     if (ok != true || title.text.trim().isEmpty || text.text.trim().isEmpty) return;
     final next = [...?_items];
     final c = DeskCanned(id: cur?.id ?? 'c${DateTime.now().millisecondsSinceEpoch}', title: title.text.trim(), text: text.text.trim());

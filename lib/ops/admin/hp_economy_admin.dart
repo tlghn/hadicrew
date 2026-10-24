@@ -12,6 +12,7 @@ import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/common.dart';
 import 'package:hadi/widgets/hadi_sheet.dart';
 import 'package:hadi/data/callables.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 /// Elmas 💎 / Akçe 🪙 ekonomisi yönetimi (`economyAdmin`, functions/src/economy.ts):
 /// hoş geldin hediyesi (`config/economy.welcomeHp` → Akçe × kur, `welcomePurchasedHp` → Elmas) ve üyeye Elmas/Akçe
@@ -298,7 +299,7 @@ class _GrantSheetState extends State<_GrantSheet> {
     final n = int.tryParse(_amount.text.trim());
     final collected = (_breakdown?['collected'] as num?)?.toInt() ?? 0;
     final amount = n != null && n > 0 ? n : null;
-    final ok = await showDialog<bool>(
+    final ok = await uiOnce(context, () => showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('Kategoriyi çevir'),
@@ -309,7 +310,7 @@ class _GrantSheetState extends State<_GrantSheet> {
           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Çevir')),
         ],
       ),
-    );
+    ));
     if (ok != true || !mounted) return;
     setState(() {
       _busy = true;

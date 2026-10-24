@@ -6,6 +6,7 @@ import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 
 import 'sh_admin_common.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 class ShDisputesAdminTab extends StatefulWidget {
   const ShDisputesAdminTab({super.key, this.embedded = true});
@@ -123,7 +124,7 @@ class _ShDisputeDetailPageState extends State<ShDisputeDetailPage> {
     return Wrap(spacing: CrewSpace.sm, runSpacing: CrewSpace.sm, children: [
       for (final e in items)
         InkWell(
-          onTap: e['url'] == null ? null : () => showDialog<void>(context: context, builder: (_) => Dialog(child: InteractiveViewer(child: Image.network('${e['url']}')))),
+          onTap: e['url'] == null ? null : () => uiOnce(context, () => showDialog<void>(context: context, builder: (_) => Dialog(child: InteractiveViewer(child: Image.network('${e['url']}'))))),
           child: ShAdminThumb(url: e['url'] as String?, emoji: '🖼️', size: 110),
         ),
     ]);
