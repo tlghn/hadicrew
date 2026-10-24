@@ -365,6 +365,25 @@ class _ProCatalogAdminTabState extends State<ProCatalogAdminTab> {
                           ),
                       ],
                     ),
+                CrewCard(
+                  title: 'Test kullanıcıları',
+                  subtitle: 'Profesyonel profili olan test kullanıcılarını kendi meslekleriyle yeniden üretir: kapak, vitrin, genel profil (meslek, kurum, biyografi, ilgi alanları).',
+                  icon: Icons.science_outlined,
+                  action: TextButton.icon(
+                    onPressed: () async {
+                      if (!await crewConfirm(context, title: 'Test profilleri yenilensin mi?', message: 'Yalnızca test kullanıcılarının örnek verisi üzerine yazılır.')) return;
+                      if (!context.mounted) return;
+                      try {
+                        final r = await _svc(context).adminSeedDummies(reseed: true);
+                        if (context.mounted) crewToast(context, '${r.length} test profili yenilendi.');
+                      } catch (e) {
+                        if (context.mounted) crewToast(context, _err(e));
+                      }
+                    },
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Yenile'),
+                  ),
+                ),
                 _BlocksCard(blocks: blocks, custom: asMap(cfg['customBlocks']), onSaved: _reload),
               ],
             ],
