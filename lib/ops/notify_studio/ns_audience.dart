@@ -463,9 +463,12 @@ class _RuleRow extends StatelessWidget {
           }
         });
       case 'gender':
-        value = Wrap(spacing: 6, children: [
-          for (final (k, l) in const [('f', 'Kadın'), ('m', 'Erkek'), ('u', 'Belirtmemiş')])
-            FilterChip(label: Text(l), selected: vals.contains(k), onSelected: (on) => onChanged({...rule, 'v': on ? [...vals, k] : [for (final x in vals) if (x != k) x]})),
+        value = Column(crossAxisAlignment: CrossAxisAlignment.start, spacing: CrewSpace.xs, children: [
+          Wrap(spacing: 6, children: [
+            for (final (k, l) in const [('female', 'Kadın'), ('male', 'Erkek'), ('other', 'Diğer')])
+              FilterChip(label: Text(l), selected: vals.contains(k), onSelected: (on) => onChanged({...rule, 'v': on ? [...vals, k] : [for (final x in vals) if (x != k) x]})),
+          ]),
+          const CrewNote('Üyenin kendi seçtiği değer; "Belirtmek istemiyorum" diyen ya da seçmeyen hiçbir cinsiyet süzgecine girmez.'),
         ]);
       case 'platform':
         value = Wrap(spacing: 6, children: [

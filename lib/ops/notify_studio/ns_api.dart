@@ -37,7 +37,7 @@ const kNsSounds = <({String id, String label, String file})>[
 
 /// Süzgeç alanları (sunucudaki beyaz liste ile aynı; özel nitelikli veri alanı YOK).
 const kNsFields = <String, String>{
-  'province': 'İl', 'district': 'İlçe', 'age': 'Yaş aralığı', 'gender': 'Cinsiyet (profilde belirttiyse)', 'interests': 'İlgi alanları',
+  'province': 'İl', 'district': 'İlçe', 'age': 'Yaş aralığı', 'gender': 'Cinsiyet (kendi seçtiyse)', 'interests': 'İlgi alanları',
   'community': 'Topluluk üyeliği', 'eventType': 'Katıldığı etkinlik türü', 'premium': 'Premium', 'memberDays': 'Üyelik süresi (gün)',
   'inactiveDays': 'En az N gündür girmeyen', 'activeDays': 'Son N günde giren', 'elmasBuyer': 'Elmas satın almış', 'storeCustomer': 'Mağaza müşterisi',
   'platform': 'Platform', 'appVersion': 'Uygulama sürümü', 'lang': 'Dil',
