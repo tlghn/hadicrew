@@ -22,7 +22,7 @@ class CrewDash {
   /// Bekleyen işlerin toplamı (yetkili olunan kuyruklar).
   int get pendingTotal {
     var n = 0;
-    for (final k in const ['applications', 'reports', 'liveReports', 'ticketsOpen', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'courierApps']) {
+    for (final k in const ['applications', 'reports', 'modFlags', 'liveReports', 'ticketsOpen', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'courierApps']) {
       n += counts[k] ?? 0;
     }
     return n;
@@ -80,7 +80,7 @@ abstract final class CrewApi {
     }
 
     return CrewDash(
-      access: const {'applications', 'reports', 'liveReports', 'tickets', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'courierApps'},
+      access: const {'applications', 'reports', 'modFlags', 'liveReports', 'tickets', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'courierApps'},
       role: 'founder',
       counts: const {
         'applications': 12, 'reports': 7, 'liveReports': 1, 'ticketsOpen': 5, 'ticketsInProgress': 3, 'idReviews': 4, 'addressReviews': 2,

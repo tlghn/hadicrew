@@ -122,7 +122,45 @@ class HiddenContentScreen extends StatefulWidget {
 
 class _HiddenContentScreenState extends State<HiddenContentScreen> {
   late Future<List<HiddenItem>> _f = _load();
-  bool _appealsOnly = false;
+
+  /// 0: Modere edilecek (karar bekleyen) · 1: Karara bağlanan / tümü · 2: İtirazlar
+  int _tab = 0;
+  String? _busyKey;
+
+  /// "Gizli kalsın" / "Geri aç" (isteğe bağlı not).
+  Future<void> _decide(HiddenItem x, {required bool keep}) async {
+    final note = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text(keep ? 'Gizli kalsın mı?' : 'Geri açılsın mı?'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(keep
+              ? '${x.label} herkese kapalı kalır. Sahibi itiraz edebilir.'
+              : '${x.label} yeniden herkese görünür; sahibine bildirilir.'),
+          const SizedBox(height: 8),
+          TextField(controller: note, maxLength: 300, decoration: const InputDecoration(hintText: 'Not (isteğe bağlı)')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Vazgeç')),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(keep ? 'Gizli kalsın' : 'Geri aç')),
+        ],
+      ),
+    );
+    final text = note.text.trim();
+    note.dispose();
+    if (ok != true || !mounted) return;
+    setState(() => _busyKey = x.key);
+    try {
+      await ContentHide.review(SessionScope.read(context).services, x.target, keep: keep, note: text);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(keep ? 'Karar kaydedildi: gizli kalacak.' : 'Geri açıldı.')));
+      _reload();
+    } on AppFailure catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _busyKey = null);
+    }
+  }
 
   Future<List<HiddenItem>> _load() => ContentHide.list(SessionScope.read(context).services);
 
@@ -142,18 +180,25 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
           }
           if (!snap.hasData) return const ListSkeleton();
           final all = snap.data!;
-          final items = _appealsOnly ? all.where((x) => x.appeal != null).toList() : all;
-          final appeals = all.where((x) => x.appeal != null).length;
+          final s = SessionScope.read(context);
+          final pend = all.where((x) => x.pending).toList();
+          final done = all.where((x) => !x.pending).toList();
+          final apps = all.where((x) => x.appeal != null).toList();
+          final items = switch (_tab) { 0 => pend, 1 => done, _ => apps };
           return ListView(padding: const EdgeInsets.only(bottom: 24), children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Wrap(spacing: 8, children: [
-                ChoiceChip(label: Text('Tümü (${all.length})'), selected: !_appealsOnly, onSelected: (_) => setState(() => _appealsOnly = false)),
-                ChoiceChip(label: Text('İtirazlar ($appeals)'), selected: _appealsOnly, onSelected: (_) => setState(() => _appealsOnly = true)),
+              child: Wrap(spacing: 8, runSpacing: 6, children: [
+                ChoiceChip(label: Text('Modere edilecek (${pend.length})'), selected: _tab == 0, onSelected: (_) => setState(() => _tab = 0)),
+                ChoiceChip(label: Text('Karara bağlanan (${done.length})'), selected: _tab == 1, onSelected: (_) => setState(() => _tab = 1)),
+                ChoiceChip(label: Text('İtirazlar (${apps.length})'), selected: _tab == 2, onSelected: (_) => setState(() => _tab = 2)),
               ]),
             ),
             if (items.isEmpty)
-              Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Gizlenen içerik yok.', style: TextStyle(color: HadiColors.ink3)))),
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Center(child: Text(_tab == 0 ? 'Karar bekleyen içerik yok.' : _tab == 1 ? 'Karara bağlanan içerik yok.' : 'İtiraz yok.', style: TextStyle(color: HadiColors.ink3))),
+              ),
             for (final x in items)
               Card(
                 margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
@@ -177,7 +222,10 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
                         if (x.preview.isNotEmpty) Text(x.preview, maxLines: 2, overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 4),
                         Text('Gerekçe: ${x.reason}', style: TextStyle(color: HadiColors.ink2, fontSize: 12)),
-                        Text('Gizleyen: ${x.byName}${x.at != null ? ' · ${_date(x.at!)}' : ''}', style: TextStyle(color: HadiColors.ink3, fontSize: 12)),
+                        Text('${x.pending ? 'İşaretleyen' : 'Gizleyen'}: ${x.byName}${x.at != null ? ' · ${_date(x.at!)}' : ''}', style: TextStyle(color: HadiColors.ink3, fontSize: 12)),
+                        if (x.review == 'kept')
+                          Text('Karar: gizli kalsın · ${x.reviewByName ?? ''}${x.reviewAt != null ? ' · ${_date(x.reviewAt!)}' : ''}${(x.reviewNote ?? '').isNotEmpty ? ' · ${x.reviewNote}' : ''}',
+                              style: TextStyle(color: HadiColors.ink2, fontSize: 12)),
                         if (x.appeal != null)
                           Container(
                             margin: const EdgeInsets.only(top: 6),
@@ -185,16 +233,40 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
                             decoration: BoxDecoration(color: HadiColors.heyecanSoft, borderRadius: BorderRadius.circular(8)),
                             child: Text('İtiraz: ${x.appeal}', style: const TextStyle(fontSize: 12)),
                           ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            icon: const Icon(Icons.visibility_rounded, size: 18),
-                            label: const Text('Gizlemeyi kaldır'),
-                            onPressed: () async {
-                              if (await unhideContentFlow(context, x.target)) _reload();
-                            },
+                        if (x.pending) ...[
+                          if (x.by == s.uid && !s.isFounder)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text('Senin işaretledin: başka bir yetkili karara bağlamalı.', style: TextStyle(color: HadiColors.ink3, fontSize: 12, fontStyle: FontStyle.italic)),
+                            )
+                          else
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Wrap(spacing: 6, children: [
+                                OutlinedButton.icon(
+                                  icon: const Icon(Icons.visibility_rounded, size: 18),
+                                  label: const Text('Geri aç'),
+                                  onPressed: _busyKey == x.key ? null : () => _decide(x, keep: false),
+                                ),
+                                FilledButton.icon(
+                                  icon: const Icon(Icons.gpp_good_rounded, size: 18),
+                                  label: const Text('Gizli kalsın'),
+                                  style: FilledButton.styleFrom(backgroundColor: HadiColors.error),
+                                  onPressed: _busyKey == x.key ? null : () => _decide(x, keep: true),
+                                ),
+                              ]),
+                            ),
+                        ] else
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              icon: const Icon(Icons.visibility_rounded, size: 18),
+                              label: const Text('Gizlemeyi kaldır'),
+                              onPressed: () async {
+                                if (await unhideContentFlow(context, x.target)) _reload();
+                              },
+                            ),
                           ),
-                        ),
                       ]),
                     ),
                   ]),
@@ -206,7 +278,7 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
     );
     if (widget.embedded) return body;
     return Scaffold(
-      appBar: AppBar(title: const Text('Gizlenen gönderiler'), actions: [IconButton(onPressed: _reload, icon: const Icon(Icons.refresh_rounded))]),
+      appBar: AppBar(title: const Text('Modere edilecek gönderiler'), actions: [IconButton(onPressed: _reload, icon: const Icon(Icons.refresh_rounded))]),
       body: body,
     );
   }
