@@ -113,8 +113,8 @@ final List<CrewSection> kCrewSections = [
     visible: (s) => s.canModerate, build: () => const ModCenterScreen(), aliases: const ['/moderasyon'],
   ),
   CrewSection(
-    id: 'gizlenen', title: 'Gizlenen içerikler', subtitle: 'Gizlenenler ve itirazlar', icon: Icons.visibility_off_rounded, group: CrewGroup.moderasyon,
-    visible: canHideContent, build: () => const HiddenContentScreen(),
+    id: 'gizlenen', title: 'Modere edilecek gönderiler', subtitle: 'İşaretlenenler, kararlar ve itirazlar', icon: Icons.visibility_off_rounded, group: CrewGroup.moderasyon,
+    visible: canHideContent, build: () => const HiddenContentScreen(), countKey: 'modFlags', queue: true,
   ),
   CrewSection(
     id: 'ai-guvenligi', title: 'AI güvenliği', subtitle: 'Yapay zekâ manipülasyon girişimleri', icon: Icons.security_rounded, group: CrewGroup.moderasyon,
