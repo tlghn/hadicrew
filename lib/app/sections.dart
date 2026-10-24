@@ -24,6 +24,8 @@ import '../ops/store/store_admin_common.dart' show canManageStore;
 import '../ops/store/store_orders_admin.dart' show StoreOrdersAdminTab;
 import '../ops/store/store_products_admin.dart' show StoreProductsAdminTab;
 import '../ops/store/store_settings_admin.dart' show StoreSettingsAdminTab;
+import '../ops/store/store_campaigns_admin.dart' show StoreCampaignsAdminTab;
+import '../ops/store/store_reviews_admin.dart' show StoreReviewsAdminTab;
 import '../ops/support/support_admin.dart' show SupportTicketsScreen;
 import 'channels_admin.dart' show ChannelsAdminScreen;
 import 'dashboard.dart' show DashboardScreen;
@@ -161,6 +163,14 @@ final List<CrewSection> kCrewSections = [
   CrewSection(
     id: 'magaza-urunleri', title: 'Mağaza ürünleri', subtitle: 'Ürünler, renkler, bedenler, hazır tasarımlar, fiyatlar', icon: Icons.checkroom_rounded, group: CrewGroup.ticaret,
     visible: canManageStore, build: () => const StoreProductsAdminTab(embedded: false),
+  ),
+  CrewSection(
+    id: 'magaza-kampanyalari', title: 'Mağaza kampanyaları', subtitle: 'İndirim, flaş, kupon, paket, vitrin bantları ve sonuçları', icon: Icons.local_offer_rounded, group: CrewGroup.ticaret,
+    visible: canManageStore, build: () => const StoreCampaignsAdminTab(embedded: false),
+  ),
+  CrewSection(
+    id: 'magaza-yorumlari', title: 'Mağaza yorumları', subtitle: 'Değerlendirmeler, yorumlar, şikâyetler; gizle / geri aç', icon: Icons.reviews_rounded, group: CrewGroup.ticaret,
+    visible: canManageStore, build: () => const StoreReviewsAdminTab(embedded: false),
   ),
   CrewSection(
     id: 'magaza-ayarlari', title: 'Mağaza ayarları', subtitle: 'Kargo ücreti, kargo firmaları, hediye süresi', icon: Icons.tune_rounded, group: CrewGroup.ticaret,
