@@ -20,6 +20,7 @@ import '../ops/metrics/metrics_admin.dart' show MetricsAdminTab;
 import '../ops/metrics/product_metrics_screen.dart' show ProductMetricsScreen;
 import '../ops/moderation/content_hide_staff.dart' show HiddenContentScreen, canHideContent;
 import '../ops/moderation/mod_center_screen.dart' show ModCenterScreen;
+import 'package:hadi/features/ai_label/ai_label_admin.dart' show AiLabelReviewScreen, kAiLabelCountKey;
 import '../ops/store/store_admin_common.dart' show canManageStore;
 import '../ops/store/store_orders_admin.dart' show StoreOrdersAdminTab;
 import '../ops/store/store_products_admin.dart' show StoreProductsAdminTab;
@@ -121,6 +122,11 @@ final List<CrewSection> kCrewSections = [
   CrewSection(
     id: 'gizlenen', title: 'Modere edilecek gönderiler', subtitle: 'İşaretlenenler, kararlar ve itirazlar', icon: Icons.visibility_off_rounded, group: CrewGroup.moderasyon,
     visible: canHideContent, build: () => const HiddenContentScreen(), countKey: 'modFlags', queue: true,
+  ),
+  // "🤖 Yapay Zeka İçeriği" etiketi: tespitler, itirazlar, kaldırma onayları (dört göz). hadimobile/lib/features/ai_label.
+  CrewSection(
+    id: 'yz-icerigi', title: 'Yapay Zeka İçeriği', subtitle: 'Tespitler, itirazlar ve etiket kaldırma onayları', icon: Icons.smart_toy_rounded, group: CrewGroup.moderasyon,
+    visible: canHideContent, build: () => const AiLabelReviewScreen(), countKey: kAiLabelCountKey, aliases: const ['/yz-icerigi'], queue: true,
   ),
   CrewSection(
     id: 'ai-guvenligi', title: 'AI güvenliği', subtitle: 'Yapay zekâ manipülasyon girişimleri', icon: Icons.security_rounded, group: CrewGroup.moderasyon,

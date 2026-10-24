@@ -22,7 +22,7 @@ class CrewDash {
   /// Bekleyen işlerin toplamı (yetkili olunan kuyruklar).
   int get pendingTotal {
     var n = 0;
-    for (final k in const ['applications', 'reports', 'modFlags', 'liveReports', 'ticketsOpen', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'courierApps', 'storeOrders']) {
+    for (final k in const ['applications', 'reports', 'modFlags', 'aiLabel', 'liveReports', 'ticketsOpen', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'courierApps', 'storeOrders', 'proLicenses']) {
       n += counts[k] ?? 0;
     }
     return n;
@@ -80,11 +80,11 @@ abstract final class CrewApi {
     }
 
     return CrewDash(
-      access: const {'applications', 'reports', 'modFlags', 'liveReports', 'tickets', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'courierApps', 'storeOrders'},
+      access: const {'applications', 'reports', 'modFlags', 'aiLabel', 'liveReports', 'tickets', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'courierApps', 'storeOrders', 'proLicenses'},
       role: 'founder',
       counts: const {
         'applications': 12, 'reports': 7, 'liveReports': 1, 'ticketsOpen': 5, 'ticketsInProgress': 3, 'idReviews': 4, 'addressReviews': 2,
-        'kahveReviews': 0, 'businessApps': 3, 'businessEvents': 2, 'courierApps': 1, 'storeOrders': 4, 'liveNow': 2, 'eventsNext7d': 9,
+        'kahveReviews': 0, 'aiLabel': 3, 'businessApps': 3, 'businessEvents': 2, 'courierApps': 1, 'storeOrders': 4, 'proLicenses': 2, 'liveNow': 2, 'eventsNext7d': 9,
         'members': 1284, 'premium': 173, 'dau': 312, 'wau': 744, 'mau': 1033,
       },
       series: CrewSeries(days: keys, lines: {
