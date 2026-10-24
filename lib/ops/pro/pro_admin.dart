@@ -749,8 +749,9 @@ class ProDummyPicker extends StatelessWidget {
 }
 
 /// Oluşturulan test kullanıcılarına profesyonel profil ekler; sonuç metnini döner.
-Future<String> proSeedDummies(BuildContext context, {required int count, required List<String> professions}) async {
-  final r = await ProProfileService.of(SessionScope.read(context).services).adminSeedDummies(professions: professions, count: count);
+Future<String> proSeedDummies(BuildContext context, {required int count, required List<String> professions, List<String>? uids}) async {
+  final r = await ProProfileService.of(SessionScope.read(context).services)
+      .adminSeedDummies(professions: professions, count: count, uids: uids == null || uids.isEmpty ? null : uids);
   if (r.isEmpty) return '';
   return ' Profesyonel profil: ${[for (final x in r) '${x.name} (${x.profession})'].join(', ')}.';
 }
