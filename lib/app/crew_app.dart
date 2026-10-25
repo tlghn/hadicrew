@@ -47,7 +47,11 @@ class _CrewAppState extends State<CrewApp> {
       GoRoute(path: '/', builder: (_, _) => const _Gate(tab: 'pano')),
       GoRoute(path: '/kuyruklar', builder: (_, _) => const _Gate(tab: 'kuyruklar')),
       GoRoute(path: '/tumu', builder: (_, _) => const _Gate(tab: 'tumu')),
-      GoRoute(path: '/b/:id', builder: (_, state) => _Gate(tab: state.pathParameters['id']!)),
+      GoRoute(path: '/b/:id', pageBuilder: (_, state) => _sectionPage(state, _Gate(tab: state.pathParameters['id']!))),
+      // Kitap Mağazası derin bağlantı (hadi › features/books/books_admin_nav.dart): /b/kitap-magazasi/{kitapId}[/bolum/{n}].
+      // Crew'da teknik kip yoktur: adresteki teknik sekme yok sayılır (BooksAdminScreen technical: false).
+      GoRoute(path: '/b/:id/:kitap', pageBuilder: (_, state) => _sectionPage(state, _Gate(tab: state.pathParameters['id']!))),
+      GoRoute(path: '/b/:id/:kitap/bolum/:n', pageBuilder: (_, state) => _sectionPage(state, _Gate(tab: state.pathParameters['id']!))),
       // Bekleme Salonu: ev sahibi olarak (host_rooms_screen.dart › Routes.lobby).
       GoRoute(path: '/salon/:room', builder: (_, state) => _Gated(child: LobbyScreen(room: state.pathParameters['room']!, asHost: true))),
       // Etkinlik ekle → kaydedince uygulama yolu (/etkinlik/{id}) yerine özet.
@@ -58,6 +62,17 @@ class _CrewAppState extends State<CrewApp> {
     ],
     errorBuilder: (context, state) => const _AppOnlyPage(),
   );
+
+  /// Bölüm sayfası: `go` ile gelinen bölüm ve alt yolları (kitap / bölüm) aynı sayfa anahtarını paylaşır; adres değişince sayfa
+  /// yeniden kurulmaz (açık kitap sayfası korunur). `push` ile açılan sayfa (telefon) kendi benzersiz anahtarını korur.
+  static Page<void> _sectionPage(GoRouterState state, Widget child) {
+    final k = state.pageKey.value;
+    return MaterialPage<void>(
+      key: k.startsWith('/b/:id') ? const ValueKey<String>('/b/:id') : state.pageKey,
+      name: state.uri.path,
+      child: child,
+    );
+  }
 
   @override
   void dispose() {

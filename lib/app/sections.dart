@@ -209,7 +209,7 @@ final List<CrewSection> kCrewSections = [
   // satış ve haklar (technical: false — teknik kip Crew'da ASLA açılmaz); ses/senkron/film Kurucu Paneli › Kitap Teknik'te.
   CrewSection(
     id: 'kitap-magazasi', title: 'Kitap Mağazası', subtitle: 'Künye ve bölüm metinleri, EPUB içe aktarma, fiyat ve satış raporu, haklar ve yayınevleri', icon: Icons.auto_stories_rounded, group: CrewGroup.ticaret,
-    visible: canManageStore, build: () => const BooksAdminScreen(technical: false), aliases: const ['/kitap-yonetimi'],
+    visible: canManageStore, build: () => const BooksAdminScreen(technical: false, urlBase: '/b/kitap-magazasi'), aliases: const ['/kitap-yonetimi'],
   ),
   // HADİ 2. El (kurucu ya da secondhand.manage). Bildirim bağlantıları: crewLink("/ikinci-el") → inceleme,
   // crewLink("/ikinci-el/uyusmazliklar") → uyuşmazlıklar.
