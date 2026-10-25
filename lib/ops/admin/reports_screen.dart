@@ -18,8 +18,9 @@ import 'package:hadi/widgets/net_fallback.dart';
 import 'package:hadi/core/service_switches.dart';
 import 'ops/mod_queue_screen.dart' show ModQueueScreen;
 import 'package:hadi/data/privacy_hub_service.dart' show PrivacyHubApi;
-/// Moderasyon kuyruğu: yalnızca şikayet edilen mesajın kopyası görünür,
-/// sohbetin geri kalanı görünmez. Her karar kayda geçer.
+/// Moderasyon kuyruğu: yalnızca şikâyet edenin gönderdiği kopya görünür (tek mesaj; "Raporla" ile gelen şikâyetlerde
+/// şikâyet edenin seçtiği/gördüğü bağlam mesajları — hadimobile functions/src/chat_report.ts, secret_chat.ts), sohbetin
+/// geri kalanına erişim yoktur. Her karar kayda geçer.
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
 
@@ -102,8 +103,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const InfoNote(
               icon: Icons.policy_outlined,
               color: HadiColors.iletisim,
-              text: 'Burada yalnızca şikayet edilen mesajın bir kopyasını görürsün; sohbetin geri kalanına erişim yoktur. '
-                  'Kaldırma ve kapatma kararların yönetim kayıtlarına işlenir.',
+              text: 'Burada yalnızca şikâyet edenin gönderdiği kopyayı görürsün: tek mesaj ya da "Raporla" ile eklenen bağlam '
+                  '(sohbet şikâyetinde en çok 50 mesaj). Sohbetin geri kalanına erişim yoktur. Kaldırma ve kapatma kararların yönetim kayıtlarına işlenir.',
             ),
             const SizedBox(height: 14),
             if (list.isEmpty)
@@ -127,10 +128,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ]),
                     const SizedBox(height: 10),
                     Text(
-                      '${r.targetName.isEmpty ? 'Üye' : r.targetName} · ${r.chatType == 'channel' ? '#${r.chatTitle}' : 'birebir sohbet'}',
+                      '${r.targetName.isEmpty ? 'Üye' : r.targetName} · ${switch (r.kind) {
+                        'dm_chat' => 'sohbet şikâyeti (${r.items.length} mesaj)',
+                        'secret_message' => 'gizli sohbet (doğrulanmış kopya)',
+                        _ => r.chatType == 'channel' ? '#${r.chatTitle}' : r.chatType == 'group' ? 'grup sohbeti' : 'birebir sohbet',
+                      }}',
                       style: text.titleSmall,
                     ),
                     const SizedBox(height: 8),
+                    if (r.items.isNotEmpty)
+                      _Transcript(items: r.items, targetName: r.targetName)
+                    else
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
@@ -157,6 +165,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       alignment: Alignment.centerRight,
                       child: Wrap(spacing: CrewSpace.sm, runSpacing: CrewSpace.sm, children: [
                         OutlinedButton(onPressed: _busy.contains(r.id) ? null : () => _resolve(r, false), child: const Text('Şikâyeti kapat')),
+                        // Sohbet şikâyeti (dm_chat) tek mesaja bağlı değil: yalnızca kapatılır.
+                        if (r.hasMessage)
                         FilledButton(
                           style: FilledButton.styleFrom(backgroundColor: HadiColors.fillForWhite(HadiColors.error), foregroundColor: Colors.white),
                           onPressed: _busy.contains(r.id) ? null : () => _resolve(r, true),
@@ -171,6 +181,57 @@ class _ReportsScreenState extends State<ReportsScreen> {
           });
         },
       ),
+    );
+  }
+}
+
+/// "Raporla" ile gelen bağlam: şikâyet edenin gönderdiği mesaj kopyaları (eskiden yeniye). Odak mesaj vurgulu.
+class _Transcript extends StatelessWidget {
+  const _Transcript({required this.items, required this.targetName});
+  final List<ReportItem> items;
+  final String targetName;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxHeight: 420),
+      decoration: BoxDecoration(color: HadiColors.mist, borderRadius: BorderRadius.circular(12)),
+      child: ListView(shrinkWrap: true, padding: const EdgeInsets.all(10), children: [
+        for (final it in items)
+          Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: it.focus ? HadiColors.pink.withValues(alpha: .10) : null,
+              borderRadius: BorderRadius.circular(8),
+              border: it.focus ? Border.all(color: HadiColors.pink.withValues(alpha: .5)) : null,
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(
+                '${it.who.isEmpty ? 'Üye' : it.who}${it.at == null ? '' : ' · ${dateTimeLong(it.at!)}'}${it.focus ? ' · şikâyet edilen' : ''}',
+                style: text.labelSmall?.copyWith(fontWeight: FontWeight.w800, color: it.who == targetName ? HadiColors.text(HadiColors.pink) : HadiColors.ink2),
+              ),
+              const SizedBox(height: 2),
+              if (it.deleted)
+                Text('🚫 Silinmiş mesaj', style: text.bodySmall?.copyWith(color: HadiColors.ink3))
+              else if (it.type == 'image' && it.mediaUrl != null)
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(it.mediaUrl!, height: 140, fit: BoxFit.cover, errorBuilder: NetImageFallback.builder)),
+                  if (it.text.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(it.text)),
+                ])
+              else if (it.type == 'voice')
+                Text(it.mediaUrl == null ? '🎤 Sesli mesaj' : '🎤 Sesli mesaj (kanıt kopyası kayıtlı)')
+              else if (it.type == 'location' || it.type == 'live')
+                const Text('📍 Konum paylaşımı')
+              else if (it.type == 'gif')
+                Text('🎞️ GIF ${it.text}')
+              else
+                Text(it.text.isEmpty ? '(boş)' : it.text),
+            ]),
+          ),
+      ]),
     );
   }
 }
