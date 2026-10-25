@@ -6,6 +6,9 @@
 //   FieldTestConfigCard       Saha testi açık/kapalı, kitle (Test Ekibi / seçilen üyeler / tüm üyeler), alıcılar
 //                             (yalnız ana kurucu / tüm kurucular). Her değişiklik gerekçeli (askReason) ve kayıtlı.
 // JSON biçimi (hadi.field_test.v1) doğrudan bir yapay zekâya ("şunu düzelt") verilecek şekilde tasarlandı.
+// 26 Ekim 2026: değerlendirme (derece, herkese açık yorum, başlık, sürüm, tür, özellik ödülü, spam/kopya) ftUpdate ile
+// test edene bildirim olarak gider; akışta ön değerlendirme (yapay zekâ), Claude ve kurucu yorumları; kazanılan Akçe.
+// Ayar kartında Akçe ödül tutarları ve toplam harcanan Akçe.
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -23,12 +26,21 @@ import 'package:hadi/widgets/toast.dart';
 import 'hp_economy_admin.dart' show trTimestamp;
 import 'roles_admin.dart' show pickMemberForRole;
 
-const kFtStatus = {'yeni': 'Yeni', 'inceleniyor': 'İnceleniyor', 'duzeltildi': 'Düzeltildi', 'kapandi': 'Kapandı'};
-const kFtCat = {'hata': 'Hata', 'tasarim': 'Tasarım', 'metin': 'Metin/yazım', 'oneri': 'Öneri', 'performans': 'Performans'};
+const kFtStatus = {'yeni': 'Yeni', 'inceleniyor': 'İnceleniyor', 'kabul_edildi': 'Kabul edildi', 'duzeltildi': 'Düzeltildi', 'canlida': 'Canlıda', 'kapandi': 'Kapandı'};
+/// Değerlendirme durumları (bulgu durumu + kapanış türleri; field_test.ts › RV_STATUSES).
+const kFtResolution = {
+  'inceleniyor': 'İnceleniyor', 'kabul_edildi': 'Kabul edildi', 'duzeltildi': 'Düzeltildi', 'canlida': 'Canlıda', 'kapandi': 'Kapandı',
+  'tekrar_edilemedi': 'Tekrarlanamadı', 'tasarim_karari': 'Tasarım kararı', 'reddedildi': 'Uygun görülmedi',
+};
+const kFtRating = {'dusuk': 'Düşük', 'orta': 'Orta', 'yuksek': 'Yüksek', 'kritik': 'Kritik'};
+const kFtKind = {'bug': 'Hata', 'feature': 'Özellik', 'design': 'Tasarım', 'text': 'Metin'};
+const kFtBonus = {'yok': 'Ödülsüz', 'iyi': 'İyi (+25)', 'harika': 'Harika (+50)'};
+const kFtBy = {'ai_triage': 'Ön değerlendirme (yapay zekâ)', 'claude': 'Claude', 'founder': 'Kurucu'};
+const kFtCat = {'hata': 'Hata', 'tasarim': 'Tasarım', 'metin': 'Metin/yazım', 'oneri': 'Öneri', 'ozellik': 'Yeni özellik', 'performans': 'Performans'};
 const kFtSev = {'dusuk': 'Düşük', 'orta': 'Orta', 'yuksek': 'Yüksek', 'engelleyici': 'Engelleyici'};
 
 Color _sevColor(String s) => switch (s) {
-      'engelleyici' => HadiColors.error,
+      'engelleyici' || 'kritik' => HadiColors.error,
       'yuksek' => HadiColors.heyecan,
       'orta' => HadiColors.aktivite,
       _ => HadiColors.dostluk,
@@ -211,12 +223,18 @@ class _FieldTestFindingsScreenState extends State<FieldTestFindingsScreen> with 
                 Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
                   _pill(kFtSev[sev] ?? sev, _sevColor(sev)),
                   _pill(kFtCat['${x['category']}'] ?? '${x['category']}', HadiColors.iletisim),
-                  _pill(kFtStatus['${x['status']}'] ?? '${x['status']}', HadiColors.ink3),
+                  _pill(kFtResolution['${x['resolution']}'] ?? kFtStatus['${x['status']}'] ?? '${x['status']}', HadiColors.ink3),
+                  if ('${x['rating'] ?? ''}'.isNotEmpty) _pill('Derece: ${kFtRating['${x['rating']}'] ?? x['rating']}', _sevColor('${x['rating']}')),
+                  if (x['kind'] == 'feature') _pill('Özellik', HadiColors.iletisim),
+                  if (asInt(x['akceTotal']) > 0) _pill('+${asInt(x['akceTotal'])} Akçe', HadiColors.gold),
+                  if (x['reviewPending'] == true) const Icon(Icons.hourglass_top_rounded, size: 16),
+                  if (x['reviewError'] != null) const Icon(Icons.error_outline_rounded, size: 16, color: HadiColors.error),
                   if (x['secure'] == true) const Icon(Icons.lock_rounded, size: 16),
                   if (x['hasShot'] == true) const Icon(Icons.image_outlined, size: 16),
                   if (x['hasAudio'] == true) const Icon(Icons.mic_none_rounded, size: 16),
                 ]),
                 const SizedBox(height: 6),
+                if ('${x['title'] ?? ''}'.isNotEmpty) Text('${x['title']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
                 Text(text.isEmpty ? '(açıklama yok)' : text, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(height: 1.3)),
                 const SizedBox(height: 4),
                 Text('${x['name']} · ${x['route']} · ${x['platform']} ${x['appVersion']} · ${trTimestamp(asInt(x['createdAt']))}',
@@ -253,6 +271,12 @@ class _FieldTestDetailState extends State<FieldTestDetail> {
   Map<String, Object?>? _item, _json;
   String? _shotUrl, _audioUrl, _error;
   final _note = TextEditingController();
+  // Değerlendirme formu (herkese açık; test edene bildirim gider).
+  final _comment = TextEditingController();
+  final _title = TextEditingController();
+  final _fix = TextEditingController();
+  String _rvStatus = '', _rating = '', _kind = '', _bonus = '';
+  bool _spam = false;
 
   @override
   void initState() {
@@ -263,6 +287,9 @@ class _FieldTestDetailState extends State<FieldTestDetail> {
   @override
   void dispose() {
     _note.dispose();
+    _comment.dispose();
+    _title.dispose();
+    _fix.dispose();
     super.dispose();
   }
 
@@ -276,18 +303,114 @@ class _FieldTestDetailState extends State<FieldTestDetail> {
         _shotUrl = r['shotUrl'] as String?;
         _audioUrl = r['audioUrl'] as String?;
         _note.text = '${_item!['founderNote'] ?? ''}';
+        _title.text = '${_item!['title'] ?? ''}';
+        _fix.text = '${_item!['fixVersion'] ?? ''}';
+        _rvStatus = '${_item!['resolution'] ?? ''}';
+        _rating = '${_item!['rating'] ?? ''}';
+        _kind = '${_item!['kind'] ?? ''}';
+        _bonus = '${_item!['bonus'] ?? ''}';
+        _spam = _item!['spam'] == true;
+        _comment.clear();
       });
     } catch (e) {
       if (mounted) setState(() => _error = e is CallFailure ? e.message : 'Yüklenemedi.');
     }
   }
 
-  Future<void> _update({String? status}) async {
-    final r = await uiBusy('ft_update_${widget.id}', () => hadiCall('feedback', {'op': 'ftUpdate', 'id': widget.id, 'status': ?status, 'founderNote': _note.text.trim()}));
+  Future<void> _update() async {
+    final r = await uiBusy('ft_update_${widget.id}', () => hadiCall('feedback', {'op': 'ftUpdate', 'id': widget.id, 'founderNote': _note.text.trim()}));
     if (r == null || !mounted) return;
     widget.onChanged?.call();
-    showToast(context, status == null ? 'Not kaydedildi.' : 'Durum: ${kFtStatus[status]}');
+    showToast(context, 'Not kaydedildi (yalnızca kurucular görür).');
     _load();
+  }
+
+  /// Değerlendirmeyi kaydeder (by: founder) → test edene "Bulgun güncellendi" + hak edilen Akçe/rozet/duyuru.
+  Future<void> _review() async {
+    final x = _item ?? const {};
+    final body = <String, Object?>{
+      'op': 'ftUpdate', 'id': widget.id,
+      if (_rvStatus.isNotEmpty && _rvStatus != x['resolution']) 'status': _rvStatus,
+      if (_rating.isNotEmpty && _rating != x['rating']) 'rating': _rating,
+      if (_kind.isNotEmpty && _kind != x['kind']) 'kind': _kind,
+      if (_bonus.isNotEmpty && _bonus != x['bonus']) 'bonus': _bonus,
+      if (_spam != (x['spam'] == true)) 'spam': _spam,
+      if (_comment.text.trim().isNotEmpty) 'comment': _comment.text.trim(),
+      if (_title.text.trim() != '${x['title'] ?? ''}' && _title.text.trim().isNotEmpty) 'title': _title.text.trim(),
+      if (_fix.text.trim() != '${x['fixVersion'] ?? ''}' && _fix.text.trim().isNotEmpty) 'fixVersion': _fix.text.trim(),
+    };
+    if (body.length <= 2) {
+      showToast(context, 'Değişiklik yok.');
+      return;
+    }
+    try {
+      final r = await uiBusy('ft_review_${widget.id}', () => hadiCall('feedback', body));
+      if (r == null || !mounted) return;
+      widget.onChanged?.call();
+      final akce = asInt(r['akce']);
+      showToast(context, akce > 0 ? 'Değerlendirme gönderildi; üye +$akce Akçe kazandı.' : 'Değerlendirme gönderildi; üyeye bildirim gitti.');
+      _load();
+    } catch (e) {
+      if (mounted) showToast(context, e is CallFailure ? e.message : 'Kaydedilemedi.');
+    }
+  }
+
+  /// Görüntü ve sesi kalıcı siler (ör. yanlışlıkla sohbet içeriği yakalanmış). Gerekçe zorunlu, denetim kaydına yazılır.
+  Future<void> _deleteMedia() async {
+    final reason = await askReason(context, title: 'Bu bulgunun ekran görüntüsü ve sesi kalıcı olarak silinsin mi?', hint: 'Neden? Örn. "Görüntüde birebir sohbet içeriği var."');
+    if (reason == null || !mounted) return;
+    try {
+      final r = await uiBusy('ft_media_${widget.id}', () => hadiCall('feedback', {'op': 'ftMediaDelete', 'id': widget.id, 'reason': reason}));
+      if (r == null || !mounted) return;
+      widget.onChanged?.call();
+      showToast(context, 'Görüntü ve ses silindi.');
+      _load();
+    } catch (e) {
+      if (mounted) showToast(context, e is CallFailure ? e.message : 'Silinemedi.');
+    }
+  }
+
+  Widget _choices(String label, Map<String, String> m, String value, ValueChanged<String> on) => Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+          const SizedBox(height: 4),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final e in m.entries) ChoiceChip(selected: value == e.key, label: Text(e.value), onSelected: (_) => setState(() => on(e.key))),
+          ]),
+        ]),
+      );
+
+  List<Widget> _timeline(Map<String, Object?> x) {
+    final reviews = [for (final r in asList(x['reviews'])) asMap(r)].reversed.toList();
+    return [
+      if (x['reviewError'] != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text('Claude değerlendirmesi reddedildi: ${x['reviewError']}', style: const TextStyle(color: HadiColors.error, fontWeight: FontWeight.w700)),
+        ),
+      if (x['reviewPending'] == true) Text('Claude değerlendirmesi uygulanmayı bekliyor (dakikada bir).', style: TextStyle(color: HadiColors.ink3)),
+      if (reviews.isEmpty) Text('Henüz değerlendirme yok${x['triageStatus'] == 'pending' ? ' (ön değerlendirme sırada)' : ''}.', style: TextStyle(color: HadiColors.ink3)),
+      for (final r in reviews)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+              Text(kFtBy['${r['by']}'] ?? '${r['by']}', style: const TextStyle(fontWeight: FontWeight.w800)),
+              if ('${r['status'] ?? ''}'.isNotEmpty) _pill(kFtResolution['${r['status']}'] ?? '${r['status']}', HadiColors.ink3),
+              if ('${r['rating'] ?? ''}'.isNotEmpty) _pill(kFtRating['${r['rating']}'] ?? '${r['rating']}', _sevColor('${r['rating']}')),
+              if ('${r['fixVersion'] ?? ''}'.isNotEmpty) _pill('${r['fixVersion']}', HadiColors.dostluk),
+              Text(trTimestamp(asInt(r['at'])), style: TextStyle(color: HadiColors.ink3, fontSize: 12)),
+            ]),
+            if ('${r['text'] ?? ''}'.isNotEmpty) SelectableText('${r['text']}', style: const TextStyle(height: 1.35)),
+          ]),
+        ),
+      if (asMap(x['akce']).isNotEmpty)
+        Text('Akçe: ${[for (final e in asMap(x['akce']).entries) '${e.key} ${asInt(e.value)}'].join(' · ')} (toplam ${asInt(x['akceTotal'])})',
+            style: TextStyle(color: HadiColors.ink2, fontSize: 12.5)),
+      if (x['announced'] != null)
+        Text('Duyuru: ${x['announced']}${x['announceName'] == false ? ' (üye adını istemedi)' : ''}', style: TextStyle(color: HadiColors.ink2, fontSize: 12.5)),
+    ];
   }
 
   @override
@@ -314,6 +437,16 @@ class _FieldTestDetailState extends State<FieldTestDetail> {
                       )
                     else
                       Text(x['secure'] == true ? 'Gizli ekran: görüntü alınmadı.' : 'Ekran görüntüsü yok (ya da saklama süresi doldu).', style: TextStyle(color: HadiColors.ink3)),
+                    if (_shotUrl != null || _audioUrl != null)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: _deleteMedia,
+                          style: TextButton.styleFrom(foregroundColor: HadiColors.error),
+                          icon: const Icon(Icons.delete_forever_rounded),
+                          label: const Text('Görüntüyü/sesi sil'),
+                        ),
+                      ),
                     const SizedBox(height: 12),
                     _section('Açıklama', '${x['description']}'),
                     _section('Sesli not dökümü', '${x['voiceTranscript']}'.isEmpty && x['transcriptStatus'] == 'pending' ? 'Yazıya dökülüyor…' : '${x['voiceTranscript']}'),
@@ -328,14 +461,27 @@ class _FieldTestDetailState extends State<FieldTestDetail> {
                       ),
                     _section('Bağlam', _pretty.convert(x['context'] ?? const {}), mono: true),
                     const SizedBox(height: 8),
-                    Text('Durum', style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
+                    Text('Değerlendirme akışı', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 6),
-                    Wrap(spacing: 8, runSpacing: 6, children: [
-                      for (final e in kFtStatus.entries)
-                        ChoiceChip(selected: x['status'] == e.key, label: Text(e.value), onSelected: (_) => _update(status: e.key)),
-                    ]),
-                    const SizedBox(height: 10),
-                    TextField(controller: _note, minLines: 1, maxLines: 4, maxLength: 2000, decoration: const InputDecoration(labelText: 'Kurucu notu')),
+                    ..._timeline(x),
+                    const Divider(height: 24),
+                    Text('Değerlendir (üye görür, bildirim gider)', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w900)),
+                    _choices('Durum', kFtResolution, _rvStatus, (v) => _rvStatus = v),
+                    _choices('Derece', kFtRating, _rating, (v) => _rating = v),
+                    _choices('Tür', kFtKind, _kind, (v) => _kind = v),
+                    if (_kind == 'feature') _choices('Özellik ödülü (canlıya alınınca bir kez)', kFtBonus, _bonus, (v) => _bonus = v),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: _spam,
+                      onChanged: (v) => setState(() => _spam = v),
+                      title: const Text('Spam / anlamsız (Akçe verilmez)'),
+                    ),
+                    TextField(controller: _comment, minLines: 2, maxLines: 6, maxLength: 1500, decoration: const InputDecoration(labelText: 'Üyeye yorum (Türkçe, herkese açık değil; yalnız üye görür)')),
+                    TextField(controller: _title, maxLength: 80, decoration: const InputDecoration(labelText: 'Kısa başlık (duyuruda kullanılır)')),
+                    TextField(controller: _fix, maxLength: 40, decoration: const InputDecoration(labelText: 'Düzeltildiği / yayına alındığı sürüm (ör. v1.4.2)')),
+                    FilledButton.icon(onPressed: _review, icon: const Icon(Icons.send_rounded), label: const Text('Değerlendirmeyi gönder')),
+                    const Divider(height: 24),
+                    TextField(controller: _note, minLines: 1, maxLines: 4, maxLength: 2000, decoration: const InputDecoration(labelText: 'Kurucu notu (gizli; üye görmez)')),
                     Wrap(spacing: 8, runSpacing: 6, children: [
                       OutlinedButton.icon(onPressed: () => _update(), icon: const Icon(Icons.save_outlined), label: const Text('Notu kaydet')),
                       FilledButton.icon(onPressed: () => _copyJson(context, _json ?? const {}, 'Bulgu'), icon: const Icon(Icons.data_object_rounded), label: const Text('JSON kopyala')),
@@ -405,6 +551,25 @@ class _FieldTestConfigCardState extends State<FieldTestConfigCard> {
     }
   }
 
+  Future<void> _editReward(String key, String label) async {
+    final cur = asInt(asMap(_cfg?['rewards'])[key]);
+    final ctl = TextEditingController(text: '$cur');
+    final v = await uiOnce(context, () => showDialog<int>(
+          context: context,
+          builder: (c) => AlertDialog(
+            title: Text(label),
+            content: TextField(controller: ctl, keyboardType: TextInputType.number, autofocus: true, decoration: const InputDecoration(suffixText: 'Akçe')),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c), child: const Text('Vazgeç')),
+              FilledButton(onPressed: () => Navigator.pop(c, int.tryParse(ctl.text.trim())), child: const Text('Kaydet')),
+            ],
+          ),
+        ));
+    ctl.dispose();
+    if (v == null || v < 0 || v == cur || !mounted) return;
+    await _save({'rewards': {...asMap(_cfg?['rewards']), key: v}}, '$label: $cur → $v Akçe');
+  }
+
   Future<void> _addMember() async {
     final MemberProfile? m = await pickMemberForRole(context, title: 'Saha testine üye ekle');
     if (m == null || !mounted) return;
@@ -442,7 +607,19 @@ class _FieldTestConfigCardState extends State<FieldTestConfigCard> {
                         child: Text('Hizmetler\'de "Saha testi" kapalı: balon kimsede görünmez.', style: TextStyle(color: HadiColors.error, fontWeight: FontWeight.w700)),
                       ),
                     const SizedBox(height: 6),
-                    Text('Açık bulgu: ${c['open'] ?? 0} · Son 24 saat: ${c['today'] ?? 0}', style: TextStyle(color: HadiColors.ink3, fontSize: 12.5)),
+                    Text('Açık bulgu: ${c['open'] ?? 0} · Son 24 saat: ${c['today'] ?? 0} · Verilen Akçe: ${asInt(c['akceSpent'])}', style: TextStyle(color: HadiColors.ink3, fontSize: 12.5)),
+                    if (c['rewardsHidden'] == true)
+                      const Text('Hizmetler\'de "Saha testi: Akçe, rozet ve duyurular" kapalı: ödül verilmez.', style: TextStyle(color: HadiColors.error, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 12),
+                    Text('Akçe ödülleri', style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 6),
+                    Wrap(spacing: 6, runSpacing: 6, children: [
+                      for (final (k, label) in const [('submit', 'Geçerli rapor'), ('accept', 'Kabul'), ('live', 'Canlıya alındı'), ('bonusGood', 'İyi özellik'), ('bonusGreat', 'Harika özellik'), ('dailySubmitCap', 'Günlük ödüllü rapor')])
+                        ActionChip(
+                          label: Text('$label: ${asInt(asMap(c['rewards'])[k])}'),
+                          onPressed: () => _editReward(k, label),
+                        ),
+                    ]),
                     const SizedBox(height: 12),
                     Text('Kimde görünsün?', style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 6),
