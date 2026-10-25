@@ -124,17 +124,25 @@ class _LiveReportsScreenState extends State<LiveReportsScreen> {
   }
 
   Widget _item(LiveReport r) {
-    final stopped = r.action == 'stopped';
     final t = Theme.of(context).textTheme;
     final src = switch (r.source) { 'audio' => 'ses', 'video' => 'görüntü', 'chat' => 'sohbet', _ => r.source };
     return CrewQueueCard(
       title: '${r.hostName} · ${r.label}',
-      pill: CrewPill(stopped ? 'Durduruldu' : 'Uyarı', color: stopped ? HadiColors.error : HadiColors.heyecan),
+      // Konuşmada küfür denetimi (functions/src/live_speech_guard.ts): muted = 1 dk sessize alındı, speech_off = yayın boyunca
+      // mikrofonu kapatıldı (tekrar; incelemeye düşer).
+      pill: switch (r.action) {
+        'stopped' => const CrewPill('Durduruldu', color: HadiColors.error),
+        'muted' => const CrewPill('1 dk sessize alındı', color: HadiColors.heyecan),
+        'speech_off' => const CrewPill('Mikrofonu kapatıldı', color: HadiColors.error),
+        _ => const CrewPill('Uyarı', color: HadiColors.heyecan),
+      },
       meta: '${r.createdAt != null ? '${dateTimeLong(r.createdAt!)} · ' : ''}kaynak: $src · güven ${(r.confidence * 100).round()}%',
       details: [
         if (r.reason.isNotEmpty) Text(r.reason, style: t.bodyMedium),
         if (r.evidence.isNotEmpty) CrewQuote('“${r.evidence}”', color: HadiColors.ink3),
-        if (!r.open) Text('Karar: ${_decisionText[r.decision] ?? 'Kapatıldı'}', style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: HadiColors.text(HadiColors.dostluk))),
+        if (r.status == 'auto')
+          Text('Kendiliğinden uygulandı; inceleme gerekmiyor.', style: t.bodySmall?.copyWith(color: HadiColors.ink3))
+        else if (!r.open) Text('Karar: ${_decisionText[r.decision] ?? 'Kapatıldı'}', style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: HadiColors.text(HadiColors.dostluk))),
       ],
       actions: [
         if (r.open) FilledButton(onPressed: _busy.contains(r.id) ? null : () => _decide(r), child: const Text('İncele ve karar ver')),
