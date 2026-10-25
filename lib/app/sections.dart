@@ -205,10 +205,11 @@ final List<CrewSection> kCrewSections = [
     id: 'magaza-ayarlari', title: 'Mağaza ayarları', subtitle: 'Kargo ücreti, kargo firmaları, hediye süresi', icon: Icons.tune_rounded, group: CrewGroup.ticaret,
     visible: canManageStore, build: () => const StoreSettingsAdminTab(embedded: false),
   ),
-  // HADİ Kitap Mağazası (kurucu ya da store.manage; lib/features/books/books_admin.dart — Kurucu Paneli de aynısını kullanır).
+  // HADİ Kitap Mağazası (kurucu ya da store.manage; lib/features/books/books_admin.dart). Crew yalnızca künye/içerik, fiyat &
+  // satış ve haklar (technical: false — teknik kip Crew'da ASLA açılmaz); ses/senkron/film Kurucu Paneli › Kitap Teknik'te.
   CrewSection(
-    id: 'kitap-magazasi', title: 'Kitap Mağazası', subtitle: 'Kitaplar, bölümler, EPUB içe aktarma, yayınevleri, satış raporu, sesli kitap', icon: Icons.auto_stories_rounded, group: CrewGroup.ticaret,
-    visible: canManageStore, build: () => const BooksAdminScreen(), aliases: const ['/kitap-yonetimi'],
+    id: 'kitap-magazasi', title: 'Kitap Mağazası', subtitle: 'Künye ve bölüm metinleri, EPUB içe aktarma, fiyat ve satış raporu, haklar ve yayınevleri', icon: Icons.auto_stories_rounded, group: CrewGroup.ticaret,
+    visible: canManageStore, build: () => const BooksAdminScreen(technical: false), aliases: const ['/kitap-yonetimi'],
   ),
   // HADİ 2. El (kurucu ya da secondhand.manage). Bildirim bağlantıları: crewLink("/ikinci-el") → inceleme,
   // crewLink("/ikinci-el/uyusmazliklar") → uyuşmazlıklar.
