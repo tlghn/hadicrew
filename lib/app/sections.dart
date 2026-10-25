@@ -7,6 +7,7 @@ import '../ops/admin/ai_video_admin.dart' show AiVideoAdminTab;
 import '../ops/admin/applications_screen.dart' show ApplicationsScreen;
 import '../ops/admin/business_admin.dart' show BusinessAdminTab;
 import '../ops/admin/courier_admin.dart' show CourierAdminTab;
+import '../ops/admin/field_test_admin.dart' show FieldTestFindingsScreen;
 import '../ops/admin/id_review_admin.dart' show IdReviewAdminTab;
 import '../ops/admin/live_reports_screen.dart' show LiveReportsScreen;
 import '../ops/admin/ops/mod_queue_screen.dart' show ModQueueScreen;
@@ -144,6 +145,11 @@ final List<CrewSection> kCrewSections = [
   CrewSection(
     id: 'destek', title: 'Destek talepleri', subtitle: 'HADİ Destek\'ten gelen talepler', icon: Icons.support_agent_rounded, group: CrewGroup.destek,
     visible: _staff, build: () => const SupportTicketsScreen(), countKey: 'ticketsOpen', aliases: const ['/destek-talepleri'], queue: true,
+  ),
+  // Saha testi (field_test.ts): kurucular; sunucu yalnızca ana kurucuya ya da "Tüm kurucular" seçiliyse kuruculara açar.
+  CrewSection(
+    id: 'test-bulgulari', title: 'Test bulguları', subtitle: 'Saha testinde gelen ekran görüntülü bulgular', icon: Icons.bug_report_rounded, group: CrewGroup.destek,
+    visible: (s) => s.isFounder, build: () => const FieldTestFindingsScreen(),
   ),
   CrewSection(
     id: 'kimlik', title: 'Kimlik doğrulama', subtitle: 'Bekleyen kimlik incelemeleri', icon: Icons.badge_rounded, group: CrewGroup.inceleme,
