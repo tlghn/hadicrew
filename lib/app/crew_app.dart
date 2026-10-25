@@ -39,8 +39,10 @@ class _CrewAppState extends State<CrewApp> {
     refreshListenable: _session,
     redirect: (context, state) {
       // Bildirim bağlantıları (functions/src/crew_link.ts): eski uygulama yolları bölüme çevrilir.
+      // Sorgu korunur (ör. /destek-talepleri?talep={id} → Destek talepleri açılır ve talep doğrudan açılır).
       final alias = sectionForAlias(state.uri.path);
-      return alias?.path;
+      if (alias == null) return null;
+      return state.uri.hasQuery ? '${alias.path}?${state.uri.query}' : alias.path;
     },
     // Düz yollar: geniş ekranda kenar çubuğu `go` ile gezer (geri oku yok); telefonda bölümler `push` ile açılır.
     routes: [

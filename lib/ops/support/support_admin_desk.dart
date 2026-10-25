@@ -30,6 +30,21 @@ class SupportDeskAdmin extends StatefulWidget {
 
 class _SupportDeskAdminState extends State<SupportDeskAdmin> {
   int _tab = 0;
+
+  /// Bildirim bağlantısıyla gelen talep (…/destek-talepleri?talep={id}; support_tickets.ts › staffTicketLink) bir kez açılır.
+  static final Set<String> _deepOpened = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final id = Uri.base.queryParameters['talep'] ?? '';
+    if (RegExp(r'^st_[a-f0-9]{20}$').hasMatch(id) && _deepOpened.add(id)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TicketThreadScreen(id: id, staff: true)));
+      });
+    }
+  }
+
   static const _tabs = [
     (Icons.inbox_rounded, 'Kuyruk'),
     (Icons.bolt_rounded, 'Hazır cevaplar'),
@@ -92,6 +107,8 @@ class _QueueState extends State<_Queue> {
   String _status = 'active';
   String? _assigned;
   String _q = '';
+  // Yalnızca "İnsana bağlan" talepleri (Yardım merkezi › İnsana bağlan; source: human).
+  bool _human = false;
   List<DeskTicket>? _items;
   List<({String uid, String name})> _staff = const [];
   String? _error;
@@ -119,9 +136,9 @@ class _QueueState extends State<_Queue> {
 
   Future<void> _load({bool silent = false}) async {
     try {
-      final r = await SupportDesk.instance.list(status: _status, assigned: _assigned, q: _q);
+      final r = await SupportDesk.instance.list(status: _status, assigned: _assigned, q: _q, source: _human ? 'human' : null);
       if (!mounted) return;
-      if (_status == 'active' && _assigned == null && _q.isEmpty) InstantCache.put('desk:queue', r.items);
+      if (_status == 'active' && _assigned == null && _q.isEmpty && !_human) InstantCache.put('desk:queue', r.items);
       setState(() {
         _items = r.items;
         _staff = r.staff;
@@ -188,6 +205,17 @@ class _QueueState extends State<_Queue> {
               ? const [('active', 'Çözülmemiş'), ('open', 'Açık'), ('waiting', 'Bekliyor'), ('resolved', 'Çözüldü'), ('all', 'Tümü')]
               : const [('active', 'Açık'), ('resolved', 'Çözülen'), ('all', 'Tümü')])
             Padding(padding: const EdgeInsets.only(right: 6), child: FilterChip(label: Text(l), selected: _status == v, onSelected: (_) => _filter(() => _status = v))),
+          const SizedBox(width: 6),
+          Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: FilterChip(
+              avatar: const Text('🙋'),
+              label: const Text('İnsana bağlan'),
+              tooltip: 'Yardım merkezinden "İnsana bağlan" ile gelen talepler',
+              selected: _human,
+              onSelected: (v) => _filter(() => _human = v),
+            ),
+          ),
           const SizedBox(width: 6),
           for (final (v, l) in [(null, 'Herkes'), ('me', 'Bana atanan'), ('none', 'Atanmamış')])
             Padding(padding: const EdgeInsets.only(right: 6), child: FilterChip(label: Text(l), selected: _assigned == v, onSelected: (_) => _filter(() => _assigned = v))),
@@ -258,6 +286,23 @@ Duration _slaFor(String s) => switch (s) {
       _ => const Duration(hours: 24),
     };
 
+/// Talep kartındaki küçük etiket ("🙋 İnsana bağlan", "Yanıt bekliyor").
+class _Pill extends StatelessWidget {
+  const _Pill({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = color.withValues(alpha: .13);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(99), border: Border.all(color: color.withValues(alpha: .35))),
+      child: Text(text, style: TextStyle(color: HadiColors.readableOn(color, bg), fontSize: 11, fontWeight: FontWeight.w800)),
+    );
+  }
+}
+
 class _QueueCard extends StatelessWidget {
   const _QueueCard({required this.t, required this.onOpen, required this.onAssign});
   final DeskTicket t;
@@ -301,6 +346,13 @@ class _QueueCard extends StatelessWidget {
                     const Spacer(),
                     DeskStatusChip(status: t.status),
                   ]),
+                  if (t.human || t.awaitingStaff) ...[
+                    const SizedBox(height: 4),
+                    Wrap(spacing: 6, runSpacing: 4, children: [
+                      if (t.human) _Pill(text: '🙋 İnsana bağlan', color: HadiColors.dostluk),
+                      if (t.awaitingStaff) _Pill(text: 'Yanıt bekliyor', color: HadiColors.pink),
+                    ]),
+                  ],
                   const SizedBox(height: 4),
                   Text(t.summary.isEmpty ? '(özet yok)' : t.summary, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(height: 1.3)),
                   const SizedBox(height: 6),
