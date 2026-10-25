@@ -35,6 +35,7 @@ import '../ops/secondhand/sh_queue_admin.dart' show ShQueueAdminTab;
 import '../ops/secondhand/sh_settings_admin.dart' show ShSettingsAdminTab;
 import '../ops/notify_studio/ns_studio_screen.dart' show NotifyStudioScreen, canNotifySend, canNotifyApprove;
 import 'package:hadi/features/books/books_admin.dart' show BooksAdminScreen;
+import 'package:hadi/features/events/tanisma/tanisma_admin.dart' show TanismaAdminScreen;
 import '../ops/pro/pro_admin.dart' show ProLicenseAdminTab, canReviewPro;
 import 'package:hadi/features/creator_subs/creator_subs_admin.dart' show CreatorReviewQueueTab;
 import '../ops/support/support_admin.dart' show SupportTicketsScreen;
@@ -150,6 +151,8 @@ final List<CrewSection> kCrewSections = [
   CrewSection(
     id: 'test-bulgulari', title: 'Test bulguları', subtitle: 'Saha testinde gelen ekran görüntülü bulgular', icon: Icons.bug_report_rounded, group: CrewGroup.destek,
     visible: (s) => s.isFounder, build: () => const FieldTestFindingsScreen(),
+    // Kurucu onayı bekleyen bulgular (crew_dash.ts › ftApprovals); bildirim bağlantısı /test-bulgulari/onay bu bölümü açar.
+    countKey: 'ftApprovals', aliases: const ['/test-bulgulari/onay'], queue: true,
   ),
   CrewSection(
     id: 'kimlik', title: 'Kimlik doğrulama', subtitle: 'Bekleyen kimlik incelemeleri', icon: Icons.badge_rounded, group: CrewGroup.inceleme,
@@ -242,6 +245,11 @@ final List<CrewSection> kCrewSections = [
   CrewSection(
     id: 'etkinlik-ekle', title: 'Etkinlik ekle', subtitle: 'Kulüp etkinliği oluştur ve yayımla', icon: Icons.add_circle_rounded, group: CrewGroup.icerik,
     visible: _admin, build: () => const EventCreateScreen(), aliases: const ['/etkinlik-yeni'],
+  ),
+  // Toplu tanışma serileri (hadi › features/events/tanisma/tanisma_admin.dart; functions/src/tanisma.ts). Sunucu: kurucu/yönetici.
+  CrewSection(
+    id: 'tanisma', title: 'Tanışma serileri', subtitle: 'Dönemsel toplu tanışma buluşmaları, kimlik doğrulama seçeneği', icon: Icons.waving_hand_rounded,
+    group: CrewGroup.icerik, visible: _admin, build: () => const TanismaAdminScreen(), aliases: const ['/tanisma'],
   ),
   CrewSection(
     id: 'uye-etkinlikleri', title: 'Üye etkinlikleri', subtitle: 'Onay bekleyen öneriler ve taslaklar', icon: Icons.fact_check_rounded, group: CrewGroup.icerik,

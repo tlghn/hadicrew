@@ -9,6 +9,8 @@
 // 26 Ekim 2026: değerlendirme (derece, herkese açık yorum, başlık, sürüm, tür, özellik ödülü, spam/kopya) ftUpdate ile
 // test edene bildirim olarak gider; akışta ön değerlendirme (yapay zekâ), Claude ve kurucu yorumları; kazanılan Akçe.
 // Ayar kartında Akçe ödül tutarları ve toplam harcanan Akçe.
+// 26 Ekim 2026 kurucu onayı: "Onay bekleyenler" süzgeci (sayılı; bekleyen varsa liste onunla açılır), ayrıntıda Claude'un
+// önerisi + Onayla / Reddet (hadi › features/field_test/founder_approval.dart; karar yalnızca ana kurucuda, ftDecide).
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -16,6 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:hadi/core/ui_gate.dart';
+import 'package:hadi/features/field_test/founder_approval.dart' show FieldTestApprovalPanel;
 import 'package:hadi/data/hadi_call.dart';
 import 'package:hadi/data/member_models.dart' show MemberProfile;
 import 'package:hadi/theme/hadi_colors.dart';
@@ -26,12 +29,14 @@ import 'package:hadi/widgets/toast.dart';
 import 'hp_economy_admin.dart' show trTimestamp;
 import 'roles_admin.dart' show pickMemberForRole;
 
-const kFtStatus = {'yeni': 'Yeni', 'inceleniyor': 'İnceleniyor', 'kabul_edildi': 'Kabul edildi', 'duzeltildi': 'Düzeltildi', 'canlida': 'Canlıda', 'kapandi': 'Kapandı'};
+const kFtStatus = {'onay_bekliyor': 'Onay bekleyenler', 'yeni': 'Yeni', 'inceleniyor': 'İnceleniyor', 'kabul_edildi': 'Kabul edildi', 'duzeltildi': 'Düzeltildi', 'canlida': 'Canlıda', 'kapandi': 'Kapandı'};
 /// Değerlendirme durumları (bulgu durumu + kapanış türleri; field_test.ts › RV_STATUSES).
 const kFtResolution = {
-  'inceleniyor': 'İnceleniyor', 'kabul_edildi': 'Kabul edildi', 'duzeltildi': 'Düzeltildi', 'canlida': 'Canlıda', 'kapandi': 'Kapandı',
+  'inceleniyor': 'İnceleniyor', 'onay_bekliyor': 'Kurucu onayında', 'kabul_edildi': 'Kabul edildi', 'duzeltildi': 'Düzeltildi', 'canlida': 'Canlıda', 'kapandi': 'Kapandı',
   'tekrar_edilemedi': 'Tekrarlanamadı', 'tasarim_karari': 'Tasarım kararı', 'reddedildi': 'Uygun görülmedi',
 };
+/// Kurucunun formdan seçebileceği durumlar ("Kurucu onayında"yı yalnızca Claude önerir; karar Onayla / Reddet ile).
+final kFtResolutionPick = {for (final e in kFtResolution.entries) if (e.key != 'onay_bekliyor') e.key: e.value};
 const kFtRating = {'dusuk': 'Düşük', 'orta': 'Orta', 'yuksek': 'Yüksek', 'kritik': 'Kritik'};
 const kFtKind = {'bug': 'Hata', 'feature': 'Özellik', 'design': 'Tasarım', 'text': 'Metin'};
 const kFtBonus = {'yok': 'Ödülsüz', 'iyi': 'İyi (+25)', 'harika': 'Harika (+50)'};
@@ -76,6 +81,8 @@ class FieldTestFindingsScreen extends StatefulWidget {
 
 class _FieldTestFindingsScreenState extends State<FieldTestFindingsScreen> with AutomaticKeepAliveClientMixin {
   String _status = 'yeni', _cat = '', _sev = '', _tester = '';
+  /// İlk yüklemede onay bekleyen varsa liste "Onay bekleyenler" ile açılır (süzgeç elle değişmediyse).
+  bool _autoApprovals = true;
   List<Map<String, Object?>>? _items;
   Map<String, Object?> _counts = const {};
   final Set<String> _sel = {};
@@ -94,6 +101,14 @@ class _FieldTestFindingsScreenState extends State<FieldTestFindingsScreen> with 
     try {
       final r = await hadiCall('feedback', {'op': 'ftList', 'status': _status, 'category': _cat, 'severity': _sev, 'tester': _tester});
       if (!mounted) return;
+      if (_autoApprovals) {
+        _autoApprovals = false;
+        if (_status != 'onay_bekliyor' && asInt(asMap(r['counts'])['onay_bekliyor']) > 0) {
+          setState(() => _status = 'onay_bekliyor');
+          await _reload();
+          return;
+        }
+      }
       setState(() {
         _items = [for (final x in asList(r['items'])) asMap(x)];
         _counts = asMap(r['counts']);
@@ -127,14 +142,21 @@ class _FieldTestFindingsScreenState extends State<FieldTestFindingsScreen> with 
       for (final e in kFtStatus.entries)
         ChoiceChip(
           selected: _status == e.key,
+          avatar: e.key == 'onay_bekliyor' && asInt(_counts[e.key]) > 0 ? const Icon(Icons.gavel_rounded, size: 16, color: HadiColors.gold) : null,
           label: Text('${e.value} · ${_counts[e.key] ?? 0}'),
           onSelected: (_) {
-            setState(() => _status = e.key);
+            setState(() {
+              _status = e.key;
+              _autoApprovals = false;
+            });
             _reload();
           },
         ),
       ChoiceChip(selected: _status == '', label: const Text('Tümü'), onSelected: (_) {
-        setState(() => _status = '');
+        setState(() {
+          _status = '';
+          _autoApprovals = false;
+        });
         _reload();
       }),
       DropdownButton<String>(value: _cat, items: [it('', 'Her tür'), for (final e in kFtCat.entries) it(e.key, e.value)], onChanged: (v) {
@@ -223,7 +245,7 @@ class _FieldTestFindingsScreenState extends State<FieldTestFindingsScreen> with 
                 Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
                   _pill(kFtSev[sev] ?? sev, _sevColor(sev)),
                   _pill(kFtCat['${x['category']}'] ?? '${x['category']}', HadiColors.iletisim),
-                  _pill(kFtResolution['${x['resolution']}'] ?? kFtStatus['${x['status']}'] ?? '${x['status']}', HadiColors.ink3),
+                  _pill(kFtResolution['${x['resolution']}'] ?? kFtStatus['${x['status']}'] ?? '${x['status']}', x['status'] == 'onay_bekliyor' ? HadiColors.gold : HadiColors.ink3),
                   if ('${x['rating'] ?? ''}'.isNotEmpty) _pill('Derece: ${kFtRating['${x['rating']}'] ?? x['rating']}', _sevColor('${x['rating']}')),
                   if (x['kind'] == 'feature') _pill('Özellik', HadiColors.iletisim),
                   if (asInt(x['akceTotal']) > 0) _pill('+${asInt(x['akceTotal'])} Akçe', HadiColors.gold),
@@ -390,6 +412,7 @@ class _FieldTestDetailState extends State<FieldTestDetail> {
           child: Text('Claude değerlendirmesi reddedildi: ${x['reviewError']}', style: const TextStyle(color: HadiColors.error, fontWeight: FontWeight.w700)),
         ),
       if (x['reviewPending'] == true) Text('Claude değerlendirmesi uygulanmayı bekliyor (dakikada bir).', style: TextStyle(color: HadiColors.ink3)),
+      if (x['decisionPending'] == true) Text('Kurucu kararı verildi; Claude\'un okuması bekleniyor.', style: TextStyle(color: HadiColors.ink3)),
       if (reviews.isEmpty) Text('Henüz değerlendirme yok${x['triageStatus'] == 'pending' ? ' (ön değerlendirme sırada)' : ''}.', style: TextStyle(color: HadiColors.ink3)),
       for (final r in reviews)
         Padding(
@@ -460,13 +483,27 @@ class _FieldTestDetailState extends State<FieldTestDetail> {
                         ),
                       ),
                     _section('Bağlam', _pretty.convert(x['context'] ?? const {}), mono: true),
+                    // Kurucu onayı: Claude'un önerisi + Onayla / Reddet (karar yalnız ana kurucuda; bulgu yukarıda zaten var).
+                    if (x['proposal'] != null) ...[
+                      const Divider(height: 24),
+                      FieldTestApprovalPanel(
+                        id: widget.id,
+                        initial: {'item': x, 'shotUrl': _shotUrl},
+                        showFinding: false,
+                        onDone: () {
+                          widget.onChanged?.call();
+                          _load();
+                        },
+                      ),
+                      const Divider(height: 24),
+                    ],
                     const SizedBox(height: 8),
                     Text('Değerlendirme akışı', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 6),
                     ..._timeline(x),
                     const Divider(height: 24),
                     Text('Değerlendir (üye görür, bildirim gider)', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w900)),
-                    _choices('Durum', kFtResolution, _rvStatus, (v) => _rvStatus = v),
+                    _choices('Durum', kFtResolutionPick, _rvStatus, (v) => _rvStatus = v),
                     _choices('Derece', kFtRating, _rating, (v) => _rating = v),
                     _choices('Tür', kFtKind, _kind, (v) => _kind = v),
                     if (_kind == 'feature') _choices('Özellik ödülü (canlıya alınınca bir kez)', kFtBonus, _bonus, (v) => _bonus = v),
