@@ -14,6 +14,7 @@ import 'package:hadi/theme/hadi_colors.dart';
 
 import 'ns_api.dart';
 import 'package:hadi/core/ui_gate.dart';
+import 'package:hadi/core/amp_case.dart';
 
 class NsAudienceEditor extends StatefulWidget {
   const NsAudienceEditor({super.key, required this.draft, required this.onChanged, this.onCount});
@@ -559,7 +560,7 @@ class _RuleRow extends StatelessWidget {
           decoration: BoxDecoration(color: crewCardColor(context), borderRadius: BorderRadius.circular(10), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
           child: shown.isEmpty
               ? Text(hint, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
-              : Wrap(spacing: 4, runSpacing: 4, children: [for (final s in shown.take(12)) Chip(label: Text(s), visualDensity: VisualDensity.compact), if (shown.length > 12) Chip(label: Text('+${shown.length - 12}'))]),
+              : Wrap(spacing: 4, runSpacing: 4, children: [for (final s in shown.take(12)) Chip(label: Text(ampCase(s)), visualDensity: VisualDensity.compact), if (shown.length > 12) Chip(label: Text('+${shown.length - 12}'))]),
         ),
       );
 }
@@ -596,7 +597,7 @@ class _MultiPickState extends State<_MultiPick> {
               itemBuilder: (_, i) => CheckboxListTile(
                 dense: true,
                 value: _sel.contains(list[i]),
-                title: Text(list[i]),
+                title: Text(ampCase(list[i])),
                 onChanged: (on) => setState(() => on == true ? _sel.add(list[i]) : _sel.remove(list[i])),
               ),
             ),

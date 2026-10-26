@@ -26,7 +26,7 @@ class _ChannelsAdminScreenState extends State<ChannelsAdminScreen> {
     ChannelDraft(title: 'Duyurular', about: 'Kulübün resmi duyuruları', emoji: '📣', color: 0, kind: 'channel', posting: Posting.staff),
     ChannelDraft(title: 'Sohbet', about: 'Herkesin buluştuğu ana grup', emoji: '💬', color: 1),
     ChannelDraft(title: 'Etkinlik fikirleri', about: 'Yeni etkinlik önerileri ve oylamalar', emoji: '💡', color: 3),
-    ChannelDraft(title: 'Doğa & spor', about: 'Yürüyüş, kamp, bisiklet', emoji: '🌲', color: 2),
+    ChannelDraft(title: 'Doğa & Spor', about: 'Yürüyüş, kamp, bisiklet', emoji: '🌲', color: 2),
   ];
 
   @override

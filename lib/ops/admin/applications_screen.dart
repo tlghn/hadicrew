@@ -16,6 +16,7 @@ import 'package:hadi/features/fun/_placeholders.dart';
 import 'package:hadi/features/candidate/candidate_profile.dart' show CandProfileReview;
 import 'package:hadi/data/privacy_hub_service.dart' show PrivacyHubApi;
 import 'package:hadi/core/ui_gate.dart';
+import 'package:hadi/core/amp_case.dart';
 
 /// Kurucu ve adminler için bekleyen başvurular (üye adayları) ve
 /// değerlendirme paneli. Sözleşme: docs/aday_sozlesme.md (§6 Ajan E).
@@ -566,7 +567,7 @@ class _Header extends StatelessWidget {
     final meta = [
       if (birthYear > 0) '${DateTime.now().year - birthYear}',
       province,
-      interests.join(', '),
+      interests.map(ampCase).join(', '),
       if (created != null) 'Başvuru ${_shortDate(created)}',
     ].where((x) => x.isNotEmpty).join(' · ');
 
