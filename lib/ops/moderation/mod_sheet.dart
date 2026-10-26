@@ -10,6 +10,7 @@ import 'package:hadi/widgets/hadi_sheet.dart';
 import 'package:hadi/widgets/reason_dialog.dart';
 import 'package:hadi/widgets/skeleton.dart';
 import 'package:hadi/features/moderation/mod_api.dart';
+import 'package:hadi/features/moderation/account_block_sheet.dart' show blockModeFrom, blockModeLabel, blockModeWho, openAccountBlockSheet, openAccountUnblock, openBlockEditSheet;
 import 'package:hadi/core/ui_gate.dart';
 
 Future<void> openModSheet(BuildContext context, {required String uid, required String name}) => showHadiSheet<void>(
@@ -71,22 +72,25 @@ class _ModSheetState extends State<_ModSheet> {
   }
 
   Future<void> _warn() async {
-    final r = await showDialog<(String, String)>(context: context, builder: (_) => _WarnDialog(name: widget.name));
+    final r = await uiOnce(context, () => showDialog<(String, String)>(context: context, builder: (_) => _WarnDialog(name: widget.name)));
     if (r == null || !mounted) return;
     await _run('warn', {'text': r.$1, if (r.$2.isNotEmpty) 'reason': r.$2}, 'Uyarı gönderildi; ${widget.name} bildirim aldı.');
   }
 
+  // "Hesabı blokla" yalnızca ana kurucu (sunucu: account_mod.ts › block; durum yanıtındaki canBlock). Ortak sayfa:
+  // hadi/features/moderation/account_block_sheet.dart (süre/kural, üyeye neden + not, iç not, önizleme, onay).
   Future<void> _blockUser() async {
-    final r = await uiOnce(context, () => showDialog<_BlockInput>(context: context, builder: (_) => _BlockDialog(name: widget.name)));
-    if (r == null || !mounted) return;
-    await _run('block', {'minutes': r.minutes, 'reason': r.reason, if (r.details.isNotEmpty) 'details': r.details},
-        r.minutes == null ? 'Hesap süresiz bloklandı.' : 'Hesap bloklandı.');
+    if (await openAccountBlockSheet(context, uid: widget.uid, name: widget.name, targetFounder: _target['founder'] == true)) await _load();
   }
 
   Future<void> _unblock() async {
-    final reason = await askReason(context, title: 'Blokeyi kaldır', message: '${widget.name} uygulamaya yeniden erişebilecek.', confirm: 'Kaldır');
-    if (reason == null || !mounted) return;
-    await _run('unblock', {'reason': reason}, 'Bloke kaldırıldı.');
+    if (await openAccountUnblock(context, uid: widget.uid, name: widget.name, mode: blockModeFrom(_block?['mode']))) await _load();
+  }
+
+  Future<void> _editBlock() async {
+    final b = _block;
+    if (b == null) return;
+    if (await openBlockEditSheet(context, uid: widget.uid, name: widget.name, block: b)) await _load();
   }
 
   Future<void> _takedown(String kind, {String? ref, required String what}) async {
@@ -207,22 +211,37 @@ class _ModSheetState extends State<_ModSheet> {
             if (founder) const _Chip('👑 Kurucu', HadiColors.gold),
           ]),
         ),
-        if (blocked && '${b?['reason'] ?? ''}'.isNotEmpty)
+        if (blocked)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text('Neden: ${b!['reason']}', style: TextStyle(color: HadiColors.ink2, height: 1.35)),
+            child: Text(
+              [
+                blockModeLabel(blockModeFrom(b?['mode'])),
+                if ('${b?['reason'] ?? ''}'.isNotEmpty) 'Neden: ${b!['reason']}',
+                if ('${b?['internal'] ?? ''}'.isNotEmpty) 'İç not: ${b!['internal']}',
+                if ('${b?['byName'] ?? ''}'.isNotEmpty) 'Bloklayan: ${b!['byName']}',
+              ].join('\n'),
+              style: TextStyle(color: HadiColors.ink2, height: 1.35),
+            ),
           ),
+        if (blocked && b?['canLift'] == true)
+          _Action(icon: Icons.lock_open_rounded, color: HadiColors.dostluk, title: 'Bloğu kaldır', sub: 'Uygulamaya yeniden erişir; hesap her yerde yeniden görünür.', onTap: _unblock),
+        if (blocked && b?['canLift'] != true)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Text(blockModeWho(blockModeFrom(b?['mode'])), style: TextStyle(color: HadiColors.ink3, fontSize: 12.5)),
+          ),
+        if (blocked && b?['canEdit'] == true)
+          _Action(icon: Icons.edit_calendar_rounded, title: 'Süreyi değiştir', sub: 'Süre ya da kaldırma kuralı (ana kurucu)', onTap: _editBlock),
+        if (!blocked && d['canBlock'] == true)
+          _Action(icon: Icons.block_rounded, color: HadiColors.error, title: 'Hesabı blokla', sub: 'Ana kurucu · hesap her yerde gizlenir; üye nedenini görür, itiraz edebilir.', onTap: _blockUser),
         if (founder)
           Padding(
             padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
-            child: Text('Kuruculara moderasyon işlemi uygulanamaz.', style: TextStyle(color: HadiColors.ink3)),
+            child: Text('Kuruculara diğer moderasyon işlemleri uygulanamaz.', style: TextStyle(color: HadiColors.ink3)),
           )
         else ...[
           _Action(icon: Icons.warning_amber_rounded, color: HadiColors.heyecan, title: 'Uyarı ver', sub: 'Yalnızca üye kendi profilinde görür; bildirim gider.', onTap: _warn),
-          if (blocked)
-            _Action(icon: Icons.lock_open_rounded, color: HadiColors.dostluk, title: 'Blokeyi kaldır', sub: 'Uygulamaya yeniden erişir.', onTap: _unblock)
-          else
-            _Action(icon: Icons.block_rounded, color: HadiColors.error, title: 'Hesabı blokla', sub: 'Süreli ya da süresiz; üye nedenini görür, itiraz edebilir.', onTap: _blockUser),
           const Divider(height: 18, indent: 20, endIndent: 20),
           _Action(
             icon: Icons.hide_image_outlined,
@@ -336,97 +355,6 @@ class _WarnDialogState extends State<_WarnDialog> {
         FilledButton(
           onPressed: ok ? () => Navigator.pop(context, (_text.text.trim(), _reason.text.trim())) : null,
           child: const Text('Uyarıyı gönder'),
-        ),
-      ],
-    );
-  }
-}
-
-class _BlockInput {
-  const _BlockInput(this.minutes, this.reason, this.details);
-  final int? minutes;
-  final String reason, details;
-}
-
-class _BlockDialog extends StatefulWidget {
-  const _BlockDialog({required this.name});
-  final String name;
-  @override
-  State<_BlockDialog> createState() => _BlockDialogState();
-}
-
-class _BlockDialogState extends State<_BlockDialog> {
-  static const _durations = <(String, int?)>[
-    ('1 saat', 60),
-    ('1 gün', 1440),
-    ('3 gün', 4320),
-    ('1 hafta', 10080),
-    ('1 ay', 43200),
-    ('1 yıl', 525600),
-    ('Süresiz', null),
-  ];
-  int _sel = 1;
-  final _reason = TextEditingController();
-  final _details = TextEditingController();
-
-  @override
-  void dispose() {
-    _reason.dispose();
-    _details.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ok = _reason.text.trim().length >= kReasonMin;
-    final m = _durations[_sel].$2;
-    final until = m == null ? null : DateTime.now().add(Duration(minutes: m));
-    return AlertDialog(
-      scrollable: true,
-      title: Text('${widget.name} bloklansın mı?'),
-      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Süre', style: TextStyle(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 6),
-        Wrap(spacing: 6, runSpacing: 6, children: [
-          for (var i = 0; i < _durations.length; i++)
-            ChoiceChip(
-              label: Text(_durations[i].$1),
-              selected: _sel == i,
-              onSelected: (_) => setState(() => _sel = i),
-            ),
-        ]),
-        const SizedBox(height: 6),
-        Text(until == null ? 'Bloke kaldırılana kadar sürer.' : 'Bitiş: ${modDate(until)} (daha önce kaldırılabilir)',
-            style: TextStyle(color: HadiColors.ink3, fontSize: 12.5)),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _reason,
-          minLines: 2,
-          maxLines: 4,
-          maxLength: 300,
-          textCapitalization: TextCapitalization.sentences,
-          onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(
-            labelText: 'Neden (zorunlu, üye görür)',
-            helperText: 'En az $kReasonMin karakter; kim, ne zaman ve neden kayda geçer.',
-            helperMaxLines: 2,
-          ),
-        ),
-        TextField(
-          controller: _details,
-          minLines: 2,
-          maxLines: 5,
-          maxLength: 1000,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(labelText: 'Ayrıntılar (isteğe bağlı, üye görür)', alignLabelWithHint: true),
-        ),
-      ]),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Vazgeç')),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: HadiColors.fillForWhite(HadiColors.error), foregroundColor: Colors.white),
-          onPressed: ok ? () => Navigator.pop(context, _BlockInput(m, _reason.text.trim().replaceAll(RegExp(r'\s+'), ' '), _details.text.trim())) : null,
-          child: const Text('Blokla'),
         ),
       ],
     );
