@@ -220,6 +220,20 @@ void main() {
         if (s.group == 'genel') expect(s.id, 'pano');
       }
     });
+    test('test bulguları Crew\'da yok (yalnız Kurucu Paneli): bölüm, takma ad, sayaç, kategori', () {
+      expect(sections.map((s) => s.id), isNot(contains('test-bulgulari')));
+      expect(labels.values, isNot(contains('Test ve kalite')));
+      expect(src, isNot(contains("countKey: 'ftApprovals'")));
+      expect(src, isNot(contains("'/test-bulgulari/onay'")));
+      expect(src, isNot(contains('FieldTestFindingsScreen')));
+      final api = File('lib/app/crew_api.dart').readAsStringSync();
+      expect(api, isNot(contains('ftApprovals')));
+      // Crew'un hiçbir dosyası (ekran dosyasının kendisi dışında) saha testi ekranını içe aktarmaz.
+      for (final f in Directory('lib').listSync(recursive: true).whereType<File>().where((f) => f.path.endsWith('.dart'))) {
+        if (f.path.endsWith('field_test_admin.dart')) continue;
+        expect(f.readAsStringSync(), isNot(contains('field_test_admin.dart')), reason: f.path);
+      }
+    });
     final entries = [
       for (final s in sections)
         if (s.group != 'genel') _e(s.id, s.title, labels[s.group]!, desc: s.sub, keys: s.keys),

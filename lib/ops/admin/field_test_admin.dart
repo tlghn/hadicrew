@@ -1,4 +1,5 @@
-// HADİ — Saha testi: Test bulguları (Crew › Destek ve Kurucu paneli › Saha testi). Sunucu: functions/src/field_test.ts
+// HADİ — Saha testi: Test bulguları (YALNIZ Kurucu paneli › Saha testi; 27 Ekim 2026'dan beri Crew'da yok — kurucu: "test
+// bulguları crew'da olmasın, sadece kurucuda olmalı". Dosya hadi_crew paketinde kalır çünkü Kurucu paneli buradan içe aktarır). Sunucu: functions/src/field_test.ts
 // (`feedback` callable › ftList / ftGet / ftUpdate / ftExport; ayar ftConfigGet / ftConfigSet yalnızca ana kurucu).
 //
 //   FieldTestFindingsScreen   liste (durum · tür · önem · test eden süzgeçleri), çoklu seçim → JSON kopyala / indir,
@@ -75,6 +76,16 @@ class FieldTestFindingsScreen extends StatefulWidget {
   /// Listenin üstünde gösterilir (Kurucu paneli: ayar kartı).
   final Widget? header;
 
+  /// Bir bulguya odaklanma isteği (Kurucu paneli › /test-bulgulari/onay?id=… bağlantısı): liste "Onay bekleyenler" ile
+  /// açılır ve bulgunun ayrıntısı gösterilir. Ekran henüz kurulmadıysa kurulunca karşılanır.
+  static final ValueNotifier<String?> focusRequest = ValueNotifier<String?>(null);
+
+  static void focus(String id) {
+    if (id.isEmpty) return;
+    focusRequest.value = null;
+    focusRequest.value = id;
+  }
+
   @override
   State<FieldTestFindingsScreen> createState() => _FieldTestFindingsScreenState();
 }
@@ -94,7 +105,31 @@ class _FieldTestFindingsScreenState extends State<FieldTestFindingsScreen> with 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _reload());
+    FieldTestFindingsScreen.focusRequest.addListener(_onFocus);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _reload();
+      _onFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    FieldTestFindingsScreen.focusRequest.removeListener(_onFocus);
+    super.dispose();
+  }
+
+  void _onFocus() {
+    final id = FieldTestFindingsScreen.focusRequest.value;
+    if (id == null || !mounted) return;
+    FieldTestFindingsScreen.focusRequest.value = null; // bir kez
+    setState(() {
+      _status = 'onay_bekliyor';
+      _autoApprovals = false;
+    });
+    _reload();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _open(id);
+    });
   }
 
   Future<void> _reload() async {
