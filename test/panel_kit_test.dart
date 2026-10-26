@@ -220,15 +220,24 @@ void main() {
         if (s.group == 'genel') expect(s.id, 'pano');
       }
     });
-    test('test bulguları Crew\'da yok (yalnız Kurucu Paneli): bölüm, takma ad, sayaç, kategori', () {
-      expect(sections.map((s) => s.id), isNot(contains('test-bulgulari')));
-      expect(labels.values, isNot(contains('Test ve kalite')));
-      expect(src, isNot(contains("countKey: 'ftApprovals'")));
-      expect(src, isNot(contains("'/test-bulgulari/onay'")));
+    test('Test bulguları Crew\'da SALT-OKUNUR: bölüm var (ekip rolleri), sayaç/onay bağlantısı yok, kurucu tam ekranı yok', () {
+      final ft = sections.firstWhere((s) => s.id == 'test-bulgulari');
+      expect(labels[ft.group], 'Test ve kalite');
+      final block = blocks.firstWhere((b) => b.contains("id: 'test-bulgulari'"));
+      expect(block, contains('visible: _staff'));
+      expect(block, contains('FieldTestCrewScreen()'));
+      expect(block, isNot(contains('countKey')));
+      expect(block, isNot(contains("'/test-bulgulari/onay'")));
       expect(src, isNot(contains('FieldTestFindingsScreen')));
-      final api = File('lib/app/crew_api.dart').readAsStringSync();
-      expect(api, isNot(contains('ftApprovals')));
-      // Crew'un hiçbir dosyası (ekran dosyasının kendisi dışında) saha testi ekranını içe aktarmaz.
+      expect(File('lib/app/crew_api.dart').readAsStringSync(), isNot(contains('ftApprovals')));
+      // Crew görünümü yalnız salt-okunur op'ları çağırır; yazma/kurucu op'u yok.
+      final view = File('lib/ops/admin/field_test_crew_view.dart').readAsStringSync();
+      expect(view, contains("'ftCrewList'"));
+      expect(view, contains("'ftCrewGet'"));
+      for (final op in ['ftList', 'ftGet\'', 'ftUpdate', 'ftDecide', 'ftExport', 'ftMediaDelete', 'ftConfig']) {
+        expect(view, isNot(contains("'$op")), reason: op);
+      }
+      // Kurucunun tam ekranı (field_test_admin.dart) Crew'da hiçbir yerden içe aktarılmaz.
       for (final f in Directory('lib').listSync(recursive: true).whereType<File>().where((f) => f.path.endsWith('.dart'))) {
         if (f.path.endsWith('field_test_admin.dart')) continue;
         expect(f.readAsStringSync(), isNot(contains('field_test_admin.dart')), reason: f.path);

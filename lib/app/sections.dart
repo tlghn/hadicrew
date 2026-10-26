@@ -7,6 +7,7 @@ import '../ops/admin/ai_video_admin.dart' show AiVideoAdminTab;
 import '../ops/admin/applications_screen.dart' show ApplicationsScreen;
 import '../ops/admin/business_admin.dart' show BusinessAdminTab;
 import '../ops/admin/courier_admin.dart' show CourierAdminTab;
+import '../ops/admin/field_test_crew_view.dart' show FieldTestCrewScreen;
 import '../ops/admin/id_review_admin.dart' show IdReviewAdminTab;
 import '../ops/admin/live_reports_screen.dart' show LiveReportsScreen;
 import '../ops/admin/ops/mod_queue_screen.dart' show ModQueueScreen;
@@ -54,6 +55,7 @@ enum CrewGroup {
   dogrulama('Doğrulama ve incelemeler'),
   guvenlik('Güvenlik ve gizlilik'),
   destek('Destek ve geri bildirim'),
+  test('Test ve kalite'),
   ticaret('Mağaza ve ticaret'),
   etkinlik('Etkinlikler'),
   iletisim('İletişim ve bildirimler'),
@@ -168,8 +170,16 @@ final List<CrewSection> kCrewSections = [
     visible: _staff, build: () => const SupportTicketsScreen(), countKey: 'ticketsOpen', aliases: const ['/destek-talepleri'], queue: true,
     keys: 'destek talep yardım insana bağlan şikayet üye mesajı yanıtla ticket',
   ),
-  // Test bulguları (saha testi) 27 Ekim 2026'dan beri YALNIZ Kurucu Paneli › Saha testi'nde (kurucu: "test bulguları crew'da
-  // olmasın"). /test-bulgulari, /test-bulgulari/onay, /b/test-bulgulari bağlantıları Kurucu Paneli'ne gider (founder_app.dart).
+  // Test bulguları — SALT-OKUNUR (27 Ekim 2026, kurucu 01:51): yalnız açıklama (+ sesli not dökümü), ekran görüntüsü, ekip
+  // (insan) notları ve durum; YZ / Claude yazıları, karar gerekçesi, kimlik, bağlam, derece, Akçe yok; hiçbir işlem yok.
+  // Sunucu: field_test.ts › ftCrewList / ftCrewGet (kurucu/yönetici/moderatör — Crew'un "ekip" rolleri; Destek talepleri ile
+  // aynı kapsam). Tam yetki ve onay bağlantıları (/test-bulgulari/onay) yalnız Kurucu Paneli › Saha testi'nde.
+  CrewSection(
+    id: 'test-bulgulari', title: 'Test bulguları', subtitle: 'Saha testi bulguları: açıklama, ekran görüntüsü, ekip notları (salt okunur)',
+    icon: Icons.bug_report_rounded, group: CrewGroup.test,
+    visible: _staff, build: () => const FieldTestCrewScreen(), aliases: const ['/test-bulgulari'],
+    keys: 'saha testi bulgu hata bug ekran görüntüsü test ekibi not salt okunur',
+  ),
   CrewSection(
     id: 'kimlik', title: 'Kimlik doğrulama', subtitle: 'Bekleyen kimlik incelemeleri', icon: Icons.badge_rounded, group: CrewGroup.dogrulama,
     visible: (s) => _cap(s, Cap.identityReview), build: () => const IdReviewAdminTab(embedded: false), countKey: 'idReviews',
