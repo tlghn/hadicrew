@@ -22,6 +22,9 @@ import 'package:hadi/core/ui_gate.dart';
 
 String _err(Object e, String fb) => e is AppFailure ? e.message : fb;
 
+/// Kuyruğu bir kaynak süzgeciyle açtırır (ör. Kurucu Paneli › Bakım Modu › "Bakım notları" → 'maintenance').
+final ValueNotifier<String?> kDeskSourceRequest = ValueNotifier<String?>(null);
+
 class SupportDeskAdmin extends StatefulWidget {
   const SupportDeskAdmin({super.key});
   @override
@@ -107,8 +110,8 @@ class _QueueState extends State<_Queue> {
   String _status = 'active';
   String? _assigned;
   String _q = '';
-  // Yalnızca "İnsana bağlan" talepleri (Yardım merkezi › İnsana bağlan; source: human).
-  bool _human = false;
+  // Kaynak süzgeci: 'human' ("İnsana bağlan"; Yardım merkezi) · 'maintenance' (bakım ekranından bırakılan notlar).
+  String? _source = kDeskSourceRequest.value;
   List<DeskTicket>? _items;
   List<({String uid, String name})> _staff = const [];
   String? _error;
@@ -117,7 +120,8 @@ class _QueueState extends State<_Queue> {
   @override
   void initState() {
     super.initState();
-    _items = InstantCache.peek<List<DeskTicket>>('desk:queue');
+    _items = _source == null ? InstantCache.peek<List<DeskTicket>>('desk:queue') : null;
+    kDeskSourceRequest.addListener(_onSourceRequest);
     _load();
     // Bekleme sayaçları canlı kalsın; liste dakikada bir tazelenir.
     _tick = Timer.periodic(const Duration(seconds: 30), (t) {
@@ -129,16 +133,22 @@ class _QueueState extends State<_Queue> {
 
   @override
   void dispose() {
+    kDeskSourceRequest.removeListener(_onSourceRequest);
     _tick?.cancel();
     _debounce?.cancel();
     super.dispose();
   }
 
+  void _onSourceRequest() {
+    final v = kDeskSourceRequest.value;
+    if (mounted && v != null && v != _source) _filter(() => _source = v);
+  }
+
   Future<void> _load({bool silent = false}) async {
     try {
-      final r = await SupportDesk.instance.list(status: _status, assigned: _assigned, q: _q, source: _human ? 'human' : null);
+      final r = await SupportDesk.instance.list(status: _status, assigned: _assigned, q: _q, source: _source);
       if (!mounted) return;
-      if (_status == 'active' && _assigned == null && _q.isEmpty && !_human) InstantCache.put('desk:queue', r.items);
+      if (_status == 'active' && _assigned == null && _q.isEmpty && _source == null) InstantCache.put('desk:queue', r.items);
       setState(() {
         _items = r.items;
         _staff = r.staff;
@@ -212,8 +222,18 @@ class _QueueState extends State<_Queue> {
               avatar: const Text('🙋'),
               label: const Text('İnsana bağlan'),
               tooltip: 'Yardım merkezinden "İnsana bağlan" ile gelen talepler',
-              selected: _human,
-              onSelected: (v) => _filter(() => _human = v),
+              selected: _source == 'human',
+              onSelected: (v) => _filter(() => _source = v ? 'human' : null),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: FilterChip(
+              avatar: const Text('🛠️'),
+              label: const Text('Bakım notları'),
+              tooltip: 'Bakım modunda bakım ekranından bırakılan notlar',
+              selected: _source == 'maintenance',
+              onSelected: (v) => _filter(() => _source = v ? 'maintenance' : null),
             ),
           ),
           const SizedBox(width: 6),
@@ -346,10 +366,11 @@ class _QueueCard extends StatelessWidget {
                     const Spacer(),
                     DeskStatusChip(status: t.status),
                   ]),
-                  if (t.human || t.awaitingStaff) ...[
+                  if (t.human || t.maintenanceNote || t.awaitingStaff) ...[
                     const SizedBox(height: 4),
                     Wrap(spacing: 6, runSpacing: 4, children: [
                       if (t.human) _Pill(text: '🙋 İnsana bağlan', color: HadiColors.dostluk),
+                      if (t.maintenanceNote) _Pill(text: '🛠️ Bakım notu', color: HadiColors.heyecan),
                       if (t.awaitingStaff) _Pill(text: 'Yanıt bekliyor', color: HadiColors.pink),
                     ]),
                   ],
