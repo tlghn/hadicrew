@@ -131,6 +131,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       '${r.targetName.isEmpty ? 'Üye' : r.targetName} · ${switch (r.kind) {
                         'dm_chat' => 'sohbet şikâyeti (${r.items.length} mesaj)',
                         'secret_message' => 'gizli sohbet (doğrulanmış kopya)',
+                        // Sohbette arama şikâyeti (hadimobile functions/src/dm_calls.ts): içerik yok, yalnızca arama bilgisi.
+                        'dm_call' => r.chatType == 'group' ? 'grup araması şikâyeti' : 'arama şikâyeti',
                         _ => r.chatType == 'channel' ? '#${r.chatTitle}' : r.chatType == 'group' ? 'grup sohbeti' : 'birebir sohbet',
                       }}',
                       style: text.titleSmall,
