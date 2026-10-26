@@ -4,6 +4,10 @@ import 'package:hadi/core/session.dart';
 import 'package:hadi/panel_ui/crew_ui.dart' show crewCanvas, crewCardColor;
 import 'package:hadi/theme/hadi_colors.dart';
 
+import '../panel_kit/command_palette.dart';
+import '../panel_kit/panel_ai.dart' show panelAiAsker;
+import '../panel_kit/panel_nav_menu.dart';
+import '../panel_kit/panel_prefs.dart';
 import 'crew_api.dart';
 import 'dashboard.dart' show crewDashNotifier;
 import 'sections.dart';
@@ -17,6 +21,23 @@ void openSection(BuildContext context, CrewSection section) {
     context.go(section.path);
   } else {
     context.push(section.path);
+  }
+}
+
+/// Bu cihazdaki Crew gezinme tercihleri (sabitlenenler, son kullanılanlar, kategori aç/kapa).
+PanelPrefs get crewPrefs => PanelPrefs.of('crew');
+
+/// Komut paleti (Ctrl/Cmd+K): yalnızca kişinin GÖREBİLDİĞİ bölümler aranır ve YZ'ye gider.
+Future<void> openCrewSearch(BuildContext context) async {
+  final s = SessionScope.read(context);
+  final id = await showPanelPalette(context, entries: crewEntries(s), prefs: crewPrefs, askAi: panelAiAsker('crew'));
+  if (id == null || !context.mounted) return;
+  final x = sectionById(id);
+  if (x == null) return;
+  if (x.id == 'pano') {
+    context.go('/');
+  } else {
+    openSection(context, x);
   }
 }
 
@@ -44,6 +65,18 @@ class CrewShell extends StatelessWidget {
     final s = SessionScope.of(context);
     final wide = MediaQuery.sizeOf(context).width >= kWide;
     final current = section ?? sectionById('pano')!;
+    // Son kullanılanlar (bu cihazda, son 5) ve menüde kategorisi açık olsun.
+    if (section != null && section!.id != 'pano') {
+      final id = section!.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        crewPrefs.touch(id);
+        PanelNavMenu.reveal(crewPrefs, [crewEntry(section!)], id);
+      });
+    }
+    return PanelHotkeys(onOpen: () => openCrewSearch(context), child: _build(context, s, wide, current));
+  }
+
+  Widget _build(BuildContext context, Session s, bool wide, CrewSection current) {
     if (wide) {
       final body = switch (tab) {
         'kuyruklar' => const QueuesPage(),
@@ -126,48 +159,43 @@ class _Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final list = visibleSections(session);
-    return SizedBox(
-      width: 280,
-      child: Material(
-        color: cs.surfaceContainerLow,
-        child: SafeArea(
-          child: ValueListenableBuilder<CrewDash?>(
-            valueListenable: crewDashNotifier,
-            builder: (context, d, _) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 12, 10),
-                child: Row(children: [
-                  Expanded(child: Text('HADİ Crew', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
-                  IconButton(tooltip: 'Çıkış yap', onPressed: () => session.signOut(), icon: const Icon(Icons.logout_rounded, size: 20)),
-                ]),
-              ),
-              Expanded(
-                child: ListView(padding: const EdgeInsets.fromLTRB(10, 0, 10, 16), children: [
-                  for (final g in CrewGroup.values)
-                    if (list.any((x) => x.group == g)) ...[
-                      if (g != CrewGroup.genel)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
-                          child: Text(g.label, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: HadiColors.ink3)),
-                        ),
-                      for (final x in list.where((x) => x.group == g)) _NavTile(section: x, selected: x.id == current, count: sectionCount(x, d)),
-                    ],
-                ]),
-              ),
-            ]),
+    return ValueListenableBuilder<CrewDash?>(
+      valueListenable: crewDashNotifier,
+      builder: (context, d, _) => PanelNavMenu(
+        title: 'HADİ Crew',
+        width: 284,
+        entries: crewEntries(session, includeGeneral: false),
+        selectedId: current,
+        prefs: crewPrefs,
+        onSearch: () => openCrewSearch(context),
+        onSelect: (id) => context.go(sectionById(id)?.path ?? '/'),
+        count: (e) {
+          final x = sectionById(e.id);
+          return x == null ? null : sectionCount(x, d);
+        },
+        actions: [IconButton(tooltip: 'Çıkış yap', onPressed: () => session.signOut(), icon: const Icon(Icons.logout_rounded, size: 20))],
+        top: [
+          _TopTile(icon: Icons.space_dashboard_rounded, label: 'Pano', selected: current == 'pano', onTap: () => context.go('/')),
+          _TopTile(
+            icon: Icons.inbox_rounded,
+            label: 'Kuyruklar',
+            selected: current == 'kuyruklar',
+            count: d?.pendingTotal,
+            onTap: () => context.go('/kuyruklar'),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-class _NavTile extends StatelessWidget {
-  const _NavTile({required this.section, required this.selected, required this.count});
-  final CrewSection section;
+/// Kenar çubuğunda kategorilerin üstünde sabit duran Pano / Kuyruklar.
+class _TopTile extends StatelessWidget {
+  const _TopTile({required this.icon, required this.label, required this.selected, required this.onTap, this.count});
+  final IconData icon;
+  final String label;
   final bool selected;
+  final VoidCallback onTap;
   final int? count;
 
   @override
@@ -181,10 +209,10 @@ class _NavTile extends StatelessWidget {
         selectedTileColor: cs.primaryContainer,
         selectedColor: cs.onPrimaryContainer,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        leading: Icon(section.icon, size: 20),
-        title: Text(section.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+        leading: Icon(icon, size: 20),
+        title: Text(label, style: TextStyle(fontWeight: selected ? FontWeight.w700 : FontWeight.w600)),
         trailing: (count ?? 0) > 0 ? _CountPill(count!) : null,
-        onTap: () => context.go(section.id == 'pano' ? '/' : section.path),
+        onTap: onTap,
       ),
     );
   }
@@ -236,32 +264,40 @@ class QueuesPage extends StatelessWidget {
   }
 }
 
-/// Tümü: yetkili olunan bütün bölümler, gruplu.
+/// Tümü (telefon): kenar çubuğuyla AYNI yapı — arama, Sabitlenenler, Son kullanılanlar, daraltılabilir kategoriler (A–Z).
 class AllSectionsPage extends StatelessWidget {
   const AllSectionsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final s = SessionScope.of(context);
-    final list = visibleSections(s);
     return Scaffold(
       backgroundColor: crewCanvas(context),
       appBar: AppBar(
         title: const Text('Tümü'),
-        actions: [IconButton(tooltip: 'Çıkış yap', onPressed: () => s.signOut(), icon: const Icon(Icons.logout_rounded))],
+        actions: [
+          IconButton(tooltip: 'Ara ya da sor', onPressed: () => openCrewSearch(context), icon: const Icon(Icons.search_rounded)),
+          IconButton(tooltip: 'Çıkış yap', onPressed: () => s.signOut(), icon: const Icon(Icons.logout_rounded)),
+        ],
       ),
       body: ValueListenableBuilder<CrewDash?>(
         valueListenable: crewDashNotifier,
-        builder: (context, d, _) => ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-          for (final g in CrewGroup.values)
-            if (g != CrewGroup.genel && list.any((x) => x.group == g)) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 16, 8, 6),
-                child: Text(g.label, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: HadiColors.ink2)),
-              ),
-              for (final x in list.where((x) => x.group == g)) _SectionTile(section: x, count: sectionCount(x, d)),
-            ],
-        ]),
+        builder: (context, d, _) => PanelNavMenu(
+          title: '',
+          width: double.infinity,
+          entries: crewEntries(s, includeGeneral: false),
+          selectedId: null,
+          prefs: crewPrefs,
+          onSearch: () => openCrewSearch(context),
+          onSelect: (id) {
+            final x = sectionById(id);
+            if (x != null) openSection(context, x);
+          },
+          count: (e) {
+            final x = sectionById(e.id);
+            return x == null ? null : sectionCount(x, d);
+          },
+        ),
       ),
     );
   }

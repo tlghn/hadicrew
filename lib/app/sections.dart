@@ -39,21 +39,28 @@ import 'package:hadi/features/events/tanisma/tanisma_admin.dart' show TanismaAdm
 import '../ops/pro/pro_admin.dart' show ProLicenseAdminTab, canReviewPro;
 import 'package:hadi/features/creator_subs/creator_subs_admin.dart' show CreatorReviewQueueTab;
 import '../ops/support/support_admin.dart' show SupportTicketsScreen;
+import '../panel_kit/panel_search.dart' show PanelEntry;
 import 'channels_admin.dart' show ChannelsAdminScreen;
 import 'dashboard.dart' show DashboardScreen;
 import 'events_admin.dart' show EventCreateScreen;
 import 'members_tools.dart' show MemberToolsScreen;
 
-/// Bölüm grupları (geniş ekranda kenar çubuğu başlıkları, telefonda "Tümü" listesi).
+/// Bölüm kategorileri (27 Ekim 2026; Kurucu Paneli ile aynı adlar). Kenar çubuğunda / "Tümü"de kategoriler ve içlerindeki
+/// bölümler Türk alfabesine göre sıralanır (panel_kit/tr_text.dart › trCompare); enum sırasının önemi yok.
+/// [genel] (Pano) kategorilerin üstünde sabit durur.
 enum CrewGroup {
   genel('Genel'),
-  uyelik('Üyelik'),
-  moderasyon('Moderasyon'),
-  destek('Destek'),
-  inceleme('İncelemeler'),
-  ticaret('Ticaret'),
-  icerik('İçerik'),
-  rapor('Raporlar');
+  uyelik('Üyeler ve roller'),
+  moderasyon('İçerik ve moderasyon'),
+  dogrulama('Doğrulama ve incelemeler'),
+  guvenlik('Güvenlik ve gizlilik'),
+  destek('Destek ve geri bildirim'),
+  test('Test ve kalite'),
+  ticaret('Mağaza ve ticaret'),
+  etkinlik('Etkinlikler'),
+  iletisim('İletişim ve bildirimler'),
+  yz('Yapay zekâ'),
+  rapor('Raporlar ve analiz');
 
   const CrewGroup(this.label);
   final String label;
@@ -72,6 +79,7 @@ class CrewSection {
     this.countKey,
     this.aliases = const [],
     this.queue = false,
+    this.keys = '',
   });
 
   final String id, title, subtitle;
@@ -89,6 +97,9 @@ class CrewSection {
   /// "Kuyruklar" sekmesinde listelenir (bekleyen iş içeren bölüm).
   final bool queue;
 
+  /// Aramada bulunması için ek sözcükler / eş anlamlılar (panel_kit › komut paleti ve YZ önerisi).
+  final String keys;
+
   String get path => '/b/$id';
 }
 
@@ -96,193 +107,234 @@ bool _admin(Session s) => s.isAdmin;
 bool _staff(Session s) => s.isStaff;
 bool _cap(Session s, String cap) => s.isFounder || s.can(cap);
 
-/// Bütün bölümler (sıra = kenar çubuğu sırası).
+/// Bütün bölümler. Menüde sıra burada değil: kategoriler ve bölümler Türk alfabesine göre (panel_kit › groupByCategory).
 final List<CrewSection> kCrewSections = [
   CrewSection(
     id: 'pano', title: 'Pano', subtitle: 'Bekleyen işler ve eğilimler', icon: Icons.space_dashboard_rounded, group: CrewGroup.genel,
     visible: (_) => true, build: () => const DashboardScreen(),
+    keys: 'pano özet bekleyen işler eğilim grafik ana sayfa',
   ),
   CrewSection(
     id: 'basvurular', title: 'Başvurular', subtitle: 'Onay bekleyen üyelik başvuruları', icon: Icons.how_to_reg_rounded, group: CrewGroup.uyelik,
     visible: _admin, build: () => const ApplicationsScreen(), countKey: 'applications', aliases: const ['/basvurular'], queue: true,
+    keys: 'başvuru üyelik onay ret aday yeni üye kayıt bekleyen',
   ),
   CrewSection(
     id: 'salonlar', title: 'Bekleme Salonu', subtitle: 'Adaylarla ev sahibi olarak sohbet et', icon: Icons.meeting_room_rounded, group: CrewGroup.uyelik,
     visible: _staff, build: () => const HostRoomsScreen(), aliases: const ['/salonlar'],
+    keys: 'bekleme salonu aday sohbet ev sahibi salon oda',
   ),
   CrewSection(
     id: 'uyeler', title: 'Üye işlemleri', subtitle: 'Rol, Premium, Elmas, moderasyon', icon: Icons.manage_accounts_rounded, group: CrewGroup.uyelik,
     visible: (s) => s.isAdmin || s.canModerate, build: () => const MemberToolsScreen(),
+    keys: 'üye ara bul rol premium elmas moderasyon ceza susturma blok hesap kullanıcı profil',
   ),
   CrewSection(
     id: 'kuyruk', title: 'Moderasyon kuyruğu', subtitle: 'Şikâyet edilen içerik, itirazlar, SLA', icon: Icons.inbox_rounded, group: CrewGroup.moderasyon,
     visible: (s) => s.isStaff || s.canModerate, build: () => const ModQueueScreen(), countKey: 'reports', queue: true,
+    keys: 'moderasyon kuyruk şikayet rapor içerik itiraz sla gönderi yorum',
   ),
   CrewSection(
     id: 'sikayetler', title: 'Mesaj şikâyetleri', subtitle: 'Sohbet ve kanal mesajları', icon: Icons.flag_rounded, group: CrewGroup.moderasyon,
     visible: _staff, build: () => const ReportsScreen(), aliases: const ['/sikayetler'],
+    keys: 'mesaj şikayet sohbet kanal dm rapor taciz',
   ),
   CrewSection(
     id: 'canli', title: 'Canlı yayın şikâyetleri', subtitle: 'Açık yayın bildirimleri', icon: Icons.live_tv_rounded, group: CrewGroup.moderasyon,
     visible: _staff, build: () => const LiveReportsScreen(), countKey: 'liveReports', aliases: const ['/yonetim/canli'], queue: true,
+    keys: 'canlı yayın şikayet live yayın bildirimi',
   ),
   CrewSection(
     id: 'merkez', title: 'Moderasyon merkezi', subtitle: 'Bloklar, itirazlar, kayıtlar', icon: Icons.shield_moon_rounded, group: CrewGroup.moderasyon,
     visible: (s) => s.canModerate, build: () => const ModCenterScreen(), aliases: const ['/moderasyon'],
+    keys: 'moderasyon merkezi blok bloke itiraz kayıt log ceza geçmişi',
   ),
   CrewSection(
     id: 'gizlenen', title: 'Modere edilecek gönderiler', subtitle: 'İşaretlenenler, kararlar ve itirazlar', icon: Icons.visibility_off_rounded, group: CrewGroup.moderasyon,
     visible: canHideContent, build: () => const HiddenContentScreen(), countKey: 'modFlags', queue: true,
+    keys: 'gizli gönderi işaretle modere karar itiraz içerik kaldır',
   ),
   // "🤖 Yapay Zeka İçeriği" etiketi: tespitler, itirazlar, kaldırma onayları (dört göz). hadimobile/lib/features/ai_label.
   CrewSection(
     id: 'yz-icerigi', title: 'Yapay Zeka İçeriği', subtitle: 'Tespitler, itirazlar ve etiket kaldırma onayları', icon: Icons.smart_toy_rounded, group: CrewGroup.moderasyon,
     visible: canHideContent, build: () => const AiLabelReviewScreen(), countKey: kAiLabelCountKey, aliases: const ['/yz-icerigi'], queue: true,
+    keys: 'yapay zeka içeriği etiket ai tespit itiraz kaldırma onay dört göz c2pa',
   ),
   CrewSection(
-    id: 'ai-guvenligi', title: 'AI güvenliği', subtitle: 'Yapay zekâ manipülasyon girişimleri', icon: Icons.security_rounded, group: CrewGroup.moderasyon,
+    id: 'ai-guvenligi', title: 'AI güvenliği', subtitle: 'Yapay zekâ manipülasyon girişimleri', icon: Icons.security_rounded, group: CrewGroup.guvenlik,
     visible: _staff, build: () => const AiSecurityAdminTab(embedded: false), aliases: const ['/yonetim/ai-guvenligi'],
+    keys: 'yapay zeka güvenlik enjeksiyon prompt saldırı manipülasyon ai',
   ),
   CrewSection(
     id: 'destek', title: 'Destek talepleri', subtitle: 'HADİ Destek\'ten gelen talepler', icon: Icons.support_agent_rounded, group: CrewGroup.destek,
     visible: _staff, build: () => const SupportTicketsScreen(), countKey: 'ticketsOpen', aliases: const ['/destek-talepleri'], queue: true,
+    keys: 'destek talep yardım insana bağlan şikayet üye mesajı yanıtla ticket',
   ),
   // Saha testi (field_test.ts): kurucular; sunucu yalnızca ana kurucuya ya da "Tüm kurucular" seçiliyse kuruculara açar.
   CrewSection(
-    id: 'test-bulgulari', title: 'Test bulguları', subtitle: 'Saha testinde gelen ekran görüntülü bulgular', icon: Icons.bug_report_rounded, group: CrewGroup.destek,
+    id: 'test-bulgulari', title: 'Test bulguları', subtitle: 'Saha testinde gelen ekran görüntülü bulgular', icon: Icons.bug_report_rounded, group: CrewGroup.test,
     visible: (s) => s.isFounder, build: () => const FieldTestFindingsScreen(),
     // Kurucu onayı bekleyen bulgular (crew_dash.ts › ftApprovals); bildirim bağlantısı /test-bulgulari/onay bu bölümü açar.
     countKey: 'ftApprovals', aliases: const ['/test-bulgulari/onay'], queue: true,
+    keys: 'saha testi bulgu hata bug ekran görüntüsü onay test ekibi',
   ),
   CrewSection(
-    id: 'kimlik', title: 'Kimlik doğrulama', subtitle: 'Bekleyen kimlik incelemeleri', icon: Icons.badge_rounded, group: CrewGroup.inceleme,
+    id: 'kimlik', title: 'Kimlik doğrulama', subtitle: 'Bekleyen kimlik incelemeleri', icon: Icons.badge_rounded, group: CrewGroup.dogrulama,
     visible: (s) => _cap(s, Cap.identityReview), build: () => const IdReviewAdminTab(embedded: false), countKey: 'idReviews',
     aliases: const ['/yonetim/kimlik-dogrulama'], queue: true,
+    keys: 'kimlik tc doğrulama inceleme nüfus belge selfie',
   ),
   CrewSection(
-    id: 'adres', title: 'Adres belgeleri', subtitle: 'İkametgâh belgesi incelemeleri', icon: Icons.home_work_rounded, group: CrewGroup.inceleme,
+    id: 'adres', title: 'Adres belgeleri', subtitle: 'İkametgâh belgesi incelemeleri', icon: Icons.home_work_rounded, group: CrewGroup.dogrulama,
     visible: (s) => _cap(s, Cap.addressReview), build: () => const AddressReviewAdminTab(embedded: false), countKey: 'addressReviews',
     aliases: const ['/yonetim/adres-dogrulama'], queue: true,
+    keys: 'adres ikametgah belge doğrulama inceleme',
   ),
   CrewSection(
-    id: 'kahve', title: 'Kahve güvenliği', subtitle: 'Kahve Eşleşmesi güvenlik incelemeleri', icon: Icons.coffee_rounded, group: CrewGroup.inceleme,
+    id: 'kahve', title: 'Kahve güvenliği', subtitle: 'Kahve Eşleşmesi güvenlik incelemeleri', icon: Icons.coffee_rounded, group: CrewGroup.guvenlik,
     visible: (s) => _cap(s, Cap.kahveSafety), build: () => const KahveSafetyAdminTab(embedded: false), countKey: 'kahveReviews',
     aliases: const ['/yonetim/kahve-guvenlik'], queue: true,
+    keys: 'kahve eşleşmesi buluşma güvenlik inceleme',
   ),
   // Üye abonelikleri (creator_subs.ts): yapay zekânın emin olamadığı abonelere özel içerik, kademe, itirazlar, çocuk güvenliği.
   // Bildirim bağlantısı: crewLink("/abonelik-incelemeleri"). Yetki: kurucu/yönetici ya da content.remove / moderation.system.
   CrewSection(
-    id: 'abonelik-incelemeleri', title: 'Abonelik incelemeleri', subtitle: 'Abonelere özel gönderi ve kademe denetimi, itirazlar', icon: Icons.star_rounded, group: CrewGroup.inceleme,
+    id: 'abonelik-incelemeleri', title: 'Abonelik incelemeleri', subtitle: 'Abonelere özel gönderi ve kademe denetimi, itirazlar', icon: Icons.star_rounded, group: CrewGroup.dogrulama,
     visible: (s) => _admin(s) || _cap(s, 'content.remove') || _cap(s, 'moderation.system'), build: () => const CreatorReviewQueueTab(embedded: false),
     aliases: const ['/abonelik-incelemeleri'], queue: true,
+    keys: 'abonelik abone yayıncı üretici creator içerik kademe itiraz çocuk güvenliği inceleme',
   ),
   // Profesyonel profil (pro_profiles.ts): lisans belgeleri (dört göz), bildirilen değerlendirmeler, profil gizleme.
   // Bildirim bağlantısı: crewLink("/pro-lisans"). Yetki: kurucu ya da pro.review.
   CrewSection(
-    id: 'pro-lisans', title: 'Lisans doğrulama', subtitle: 'Profesyonel profil: meslek belgeleri, değerlendirmeler', icon: Icons.workspace_premium_rounded, group: CrewGroup.inceleme,
+    id: 'pro-lisans', title: 'Lisans doğrulama', subtitle: 'Profesyonel profil: meslek belgeleri, değerlendirmeler', icon: Icons.workspace_premium_rounded, group: CrewGroup.dogrulama,
     visible: canReviewPro, build: () => const ProLicenseAdminTab(embedded: false), countKey: 'proLicenses',
     aliases: const ['/pro-lisans'], queue: true,
+    keys: 'profesyonel profil lisans diploma meslek belge değerlendirme yorum dört göz',
   ),
   CrewSection(
     id: 'isletmeler', title: 'İşletmeler', subtitle: 'Başvurular, etkinlikler, ödeme talepleri', icon: Icons.storefront_rounded, group: CrewGroup.ticaret,
     visible: (s) => _cap(s, Cap.businessReview), build: () => const BusinessAdminTab(embedded: false), countKey: 'businessApps',
     aliases: const ['/yonetim/isletmeler'], queue: true,
+    keys: 'işletme başvuru restoran kafe etkinlik ödeme talebi iş yeri',
   ),
   CrewSection(
     id: 'kuryeler', title: 'Kuryeler', subtitle: 'Başvurular, teslimat uyuşmazlıkları, ödemeler', icon: Icons.delivery_dining_rounded, group: CrewGroup.ticaret,
     visible: (s) => _cap(s, Cap.courierReview), build: () => const CourierAdminTab(embedded: false), countKey: 'courierApps',
     aliases: const ['/yonetim/kuryeler'], queue: true,
+    keys: 'kurye motokurye teslimat başvuru uyuşmazlık ödeme sipariş',
   ),
   // HADİ Mağaza (kurucu ya da store.manage). Bildirim bağlantısı: crewLink("/magaza") → Mağaza siparişleri.
   CrewSection(
     id: 'magaza-siparisleri', title: 'Mağaza siparişleri', subtitle: 'Baskı, kargo, teslimat ve iadeler', icon: Icons.local_mall_rounded, group: CrewGroup.ticaret,
     visible: canManageStore, build: () => const StoreOrdersAdminTab(embedded: false), countKey: 'storeOrders', aliases: const ['/magaza'], queue: true,
+    keys: 'mağaza sipariş kargo baskı teslim iade iptal takip',
   ),
   CrewSection(
     id: 'magaza-urunleri', title: 'Mağaza ürünleri', subtitle: 'Ürünler, renkler, bedenler, hazır tasarımlar, fiyatlar', icon: Icons.checkroom_rounded, group: CrewGroup.ticaret,
     visible: canManageStore, build: () => const StoreProductsAdminTab(embedded: false),
+    keys: 'mağaza ürün tişört kupa renk beden tasarım fiyat stok',
   ),
   CrewSection(
     id: 'magaza-kampanyalari', title: 'Mağaza kampanyaları', subtitle: 'İndirim, flaş, kupon, paket, vitrin bantları ve sonuçları', icon: Icons.local_offer_rounded, group: CrewGroup.ticaret,
     visible: canManageStore, build: () => const StoreCampaignsAdminTab(embedded: false),
+    keys: 'mağaza kampanya indirim kupon flaş paket vitrin',
   ),
   CrewSection(
     id: 'magaza-yorumlari', title: 'Mağaza yorumları', subtitle: 'Değerlendirmeler, yorumlar, şikâyetler; gizle / geri aç', icon: Icons.reviews_rounded, group: CrewGroup.ticaret,
     visible: canManageStore, build: () => const StoreReviewsAdminTab(embedded: false),
+    keys: 'mağaza yorum değerlendirme puan şikayet gizle',
   ),
   CrewSection(
     id: 'magaza-ayarlari', title: 'Mağaza ayarları', subtitle: 'Kargo ücreti, kargo firmaları, hediye süresi', icon: Icons.tune_rounded, group: CrewGroup.ticaret,
     visible: canManageStore, build: () => const StoreSettingsAdminTab(embedded: false),
+    keys: 'mağaza ayar kargo ücreti kargo firması hediye süresi',
   ),
   // HADİ Kitap Mağazası (kurucu ya da store.manage; lib/features/books/books_admin.dart). Crew yalnızca künye/içerik, fiyat &
   // satış ve haklar (technical: false — teknik kip Crew'da ASLA açılmaz); ses/senkron/film Kurucu Paneli › Kitap Teknik'te.
   CrewSection(
     id: 'kitap-magazasi', title: 'Kitap Mağazası', subtitle: 'Künye ve bölüm metinleri, EPUB içe aktarma, fiyat ve satış raporu, haklar ve yayınevleri', icon: Icons.auto_stories_rounded, group: CrewGroup.ticaret,
     visible: canManageStore, build: () => const BooksAdminScreen(technical: false, urlBase: '/b/kitap-magazasi'), aliases: const ['/kitap-yonetimi'],
+    keys: 'kitap e-kitap mağaza epub yayınevi telif fiyat satış raporu künye',
   ),
   // HADİ 2. El (kurucu ya da secondhand.manage). Bildirim bağlantıları: crewLink("/ikinci-el") → inceleme,
   // crewLink("/ikinci-el/uyusmazliklar") → uyuşmazlıklar.
   CrewSection(
     id: 'ikinci-el', title: '2. El inceleme', subtitle: 'İlanlar, itirazlar, şikâyetler, dolandırıcılık, kargo kaydı', icon: Icons.recycling_rounded, group: CrewGroup.ticaret,
     visible: canManageSecondhand, build: () => const ShQueueAdminTab(embedded: false), countKey: 'secondhand', aliases: const ['/ikinci-el'], queue: true,
+    keys: 'ikinci el 2. el ilan inceleme dolandırıcılık şikayet itiraz',
   ),
   CrewSection(
     id: 'ikinci-el-uyusmazliklar', title: '2. El uyuşmazlıkları', subtitle: 'Kanıtlar, satıcı yanıtı, karar ve iade', icon: Icons.report_outlined, group: CrewGroup.ticaret,
     visible: canManageSecondhand, build: () => const ShDisputesAdminTab(embedded: false), aliases: const ['/ikinci-el/uyusmazliklar'],
+    keys: 'ikinci el uyuşmazlık iade kanıt satıcı alıcı',
   ),
   CrewSection(
     id: 'ikinci-el-siparisler', title: '2. El siparişleri', subtitle: 'Emanetteki ödemeler, kargo kaydı, satıcı ödemeleri', icon: Icons.receipt_long_outlined, group: CrewGroup.ticaret,
     visible: canManageSecondhand, build: () => const ShOrdersAdminTab(embedded: false),
+    keys: 'ikinci el sipariş emanet ödeme kargo satıcı ödemesi',
   ),
   CrewSection(
     id: 'ikinci-el-ayarlari', title: '2. El ayarları', subtitle: 'Ücretler, kargo, öne çıkarma, Pro, süreler, sınırlar', icon: Icons.tune_rounded, group: CrewGroup.ticaret,
     visible: canManageSecondhand, build: () => const ShSettingsAdminTab(embedded: false),
+    keys: 'ikinci el ayar ücret komisyon kargo öne çıkar pro sınır',
   ),
   CrewSection(
-    id: 'yolculuklar', title: 'Yolculuk anlaşmazlıkları', subtitle: 'Paylaşımlı yolculuk şikâyetleri', icon: Icons.directions_car_rounded, group: CrewGroup.ticaret,
+    id: 'yolculuklar', title: 'Yolculuk anlaşmazlıkları', subtitle: 'Paylaşımlı yolculuk şikâyetleri', icon: Icons.directions_car_rounded, group: CrewGroup.etkinlik,
     visible: _staff, build: () => const RideDisputesScreen(), aliases: const ['/yonetim/yolculuklar'],
+    keys: 'yolculuk araç paylaşımı şikayet anlaşmazlık sürücü yolcu',
   ),
   CrewSection(
-    id: 'etkinlik-ekle', title: 'Etkinlik ekle', subtitle: 'Kulüp etkinliği oluştur ve yayımla', icon: Icons.add_circle_rounded, group: CrewGroup.icerik,
+    id: 'etkinlik-ekle', title: 'Etkinlik ekle', subtitle: 'Kulüp etkinliği oluştur ve yayımla', icon: Icons.add_circle_rounded, group: CrewGroup.etkinlik,
     visible: _admin, build: () => const EventCreateScreen(), aliases: const ['/etkinlik-yeni'],
+    keys: 'etkinlik ekle oluştur yayımla kulüp yeni etkinlik',
   ),
   // Toplu tanışma serileri (hadi › features/events/tanisma/tanisma_admin.dart; functions/src/tanisma.ts). Sunucu: kurucu/yönetici.
   CrewSection(
     id: 'tanisma', title: 'Tanışma serileri', subtitle: 'Dönemsel toplu tanışma buluşmaları, kimlik doğrulama seçeneği', icon: Icons.waving_hand_rounded,
-    group: CrewGroup.icerik, visible: _admin, build: () => const TanismaAdminScreen(), aliases: const ['/tanisma'],
+    group: CrewGroup.etkinlik, visible: _admin, build: () => const TanismaAdminScreen(), aliases: const ['/tanisma'],
+    keys: 'tanışma buluşma toplu seri yeni üye kimlik',
   ),
   CrewSection(
-    id: 'uye-etkinlikleri', title: 'Üye etkinlikleri', subtitle: 'Onay bekleyen öneriler ve taslaklar', icon: Icons.fact_check_rounded, group: CrewGroup.icerik,
+    id: 'uye-etkinlikleri', title: 'Üye etkinlikleri', subtitle: 'Onay bekleyen öneriler ve taslaklar', icon: Icons.fact_check_rounded, group: CrewGroup.etkinlik,
     visible: _admin, build: () => const MemberEventsAdminScreen(), aliases: const ['/yonetim/uye-etkinlikleri'],
+    keys: 'üye etkinliği öneri taslak onay',
   ),
   // Bildirim Stüdyosu (notify.send / notify.approve / kurucu). Onay bildirimi bağlantısı: crewLink("/b/bildirim-onaylari").
   CrewSection(
-    id: 'bildirim-studyosu', title: 'Bildirim stüdyosu', subtitle: 'Üyelere uygulama içi bildirim ve kart: kitle, içerik, zaman, A/B, rapor', icon: Icons.campaign_rounded, group: CrewGroup.icerik,
+    id: 'bildirim-studyosu', title: 'Bildirim stüdyosu', subtitle: 'Üyelere uygulama içi bildirim ve kart: kitle, içerik, zaman, A/B, rapor', icon: Icons.campaign_rounded, group: CrewGroup.iletisim,
     visible: canNotifySend, build: () => const NotifyStudioScreen(),
+    keys: 'bildirim push anlık kampanya duyuru kitle a/b mesaj gönder',
   ),
   CrewSection(
-    id: 'bildirim-onaylari', title: 'Bildirim onayları', subtitle: 'İkinci onay bekleyen gönderimler (dört göz)', icon: Icons.how_to_reg_rounded, group: CrewGroup.icerik,
+    id: 'bildirim-onaylari', title: 'Bildirim onayları', subtitle: 'İkinci onay bekleyen gönderimler (dört göz)', icon: Icons.how_to_reg_rounded, group: CrewGroup.iletisim,
     visible: canNotifyApprove, build: () => const NotifyStudioScreen(initialTab: 1), countKey: 'notifyApprovals', aliases: const ['/bildirim-onaylari'], queue: true,
+    keys: 'bildirim onay dört göz ikinci onay kampanya',
   ),
   CrewSection(
-    id: 'kanallar', title: 'Kanallar', subtitle: 'Kanal ve grup kur, düzenle, duyuru gönder', icon: Icons.tag_rounded, group: CrewGroup.icerik,
+    id: 'kanallar', title: 'Kanallar', subtitle: 'Kanal ve grup kur, düzenle, duyuru gönder', icon: Icons.tag_rounded, group: CrewGroup.iletisim,
     visible: _admin, build: () => const ChannelsAdminScreen(),
+    keys: 'kanal grup duyuru oluştur düzenle',
   ),
   CrewSection(
-    id: 'ai-video', title: 'AI video şablonları', subtitle: 'Şablonlar ve ayarlar', icon: Icons.movie_filter_rounded, group: CrewGroup.icerik,
+    id: 'ai-video', title: 'AI video şablonları', subtitle: 'Şablonlar ve ayarlar', icon: Icons.movie_filter_rounded, group: CrewGroup.yz,
     visible: (s) => _cap(s, 'aivideo.manage'), build: () => const AiVideoAdminTab(embedded: false), aliases: const ['/yonetim/ai-video'],
+    keys: 'yapay zeka video şablon ai fal veo',
   ),
   CrewSection(
     id: 'metrikler', title: 'İstatistik', subtitle: 'Üyelik, ekonomi, içerik, etkinlik', icon: Icons.insights_rounded, group: CrewGroup.rapor,
     visible: (s) => s.isPrimary, build: () => const _Padded(title: 'İstatistik', child: MetricsAdminTab()),
+    keys: 'istatistik metrik rapor üyelik ekonomi içerik etkinlik grafik',
   ),
   CrewSection(
     id: 'urun', title: 'Ürün metrikleri', subtitle: 'DAU/WAU/MAU, tutunma, huni', icon: Icons.ssid_chart_rounded, group: CrewGroup.rapor,
     visible: (s) => s.isPrimary, build: () => const ProductMetricsScreen(),
+    keys: 'ürün metrik dau wau mau tutunma retention huni aktif kullanıcı',
   ),
   CrewSection(
     id: 'maliyet', title: 'Maliyet uyarıları', subtitle: 'Günlük bulut ve yapay zekâ maliyeti', icon: Icons.savings_rounded, group: CrewGroup.rapor,
     visible: (s) => s.isPrimary, build: () => const CostAlertsScreen(),
+    keys: 'maliyet uyarı bulut yapay zeka gemini harcama fatura bütçe',
   ),
 ];
 
@@ -302,6 +354,14 @@ CrewSection? sectionForAlias(String path) {
 }
 
 List<CrewSection> visibleSections(Session s) => [for (final x in kCrewSections) if (x.visible(s)) x];
+
+/// Arama/menü girdisi (panel_kit). Açıklama = alt başlık; kategori = grubun adı.
+PanelEntry crewEntry(CrewSection x) =>
+    PanelEntry(id: x.id, title: x.title, icon: x.icon, category: x.group.label, description: x.subtitle, keys: x.keys);
+
+/// Kişinin görebildiği bölümler (arama ve YZ önerisi YALNIZCA bunlarla çalışır; rol bazlı görünürlük korunur).
+List<PanelEntry> crewEntries(Session s, {bool includeGeneral = true}) =>
+    [for (final x in visibleSections(s)) if (includeGeneral || x.group != CrewGroup.genel) crewEntry(x)];
 
 /// Ekibe açık mı: pano dışında görebildiği en az bir bölüm.
 bool hasCrewAccess(Session s) => visibleSections(s).length > 1;
