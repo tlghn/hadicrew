@@ -5,6 +5,7 @@ import 'package:hadi/core/capabilities.dart';
 import 'package:hadi/core/session.dart';
 import 'package:hadi/data/models.dart';
 import 'package:hadi/features/feed/content_hide.dart';
+import 'package:hadi/features/feed/comment_moderation.dart' show runFlirtScanFlow;
 import 'package:hadi/panel_ui/crew_ui.dart';
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/hadi_sheet.dart';
@@ -124,9 +125,57 @@ class HiddenContentScreen extends StatefulWidget {
 class _HiddenContentScreenState extends State<HiddenContentScreen> {
   late Future<List<HiddenItem>> _f = _load();
 
-  /// 0: Modere edilecek (karar bekleyen) · 1: Karara bağlanan / tümü · 2: İtirazlar
+  /// 0: Modere edilecek (karar bekleyen) · 1: Karara bağlanan / tümü · 2: İtirazlar · 3: Gizlenen yorumlar
   int _tab = 0;
   String? _busyKey;
+
+  /// "Gizlenen yorumlar" sekmesinde toplu "Geri al" için seçilenler (kayıt anahtarı).
+  final _sel = <String>{};
+  bool _bulk = false;
+
+  /// Seçilen yorumları tek tek geri alır (her biri denetim kaydına ayrı düşer).
+  Future<void> _bulkRestore(List<HiddenItem> items) async {
+    final ok = await uiOnce(context, () => showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text('${items.length} yorum geri alınsın mı?'),
+        content: const Text('Yorumlar (ve birlikte gizlenen yanıtları) yeniden herkese görünür ve sayıya döner.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Vazgeç')),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Geri al')),
+        ],
+      ),
+    ));
+    if (ok != true || !mounted) return;
+    final services = SessionScope.read(context).services;
+    setState(() => _bulk = true);
+    var done = 0;
+    String? err;
+    for (final x in items) {
+      try {
+        await ContentHide.unhide(services, x.target);
+        done++;
+      } on AppFailure catch (e) {
+        err = e.message;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _bulk = false;
+      _sel.clear();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$done yorum geri alındı.${err != null ? ' Bazıları alınamadı: $err' : ''}')));
+    _reload();
+  }
+
+  /// Kurucu: "Bana yapılan yorumları tara" (flirtScan: önce önizleme, sonra Uygula).
+  Future<void> _scan() async {
+    final n = await runFlirtScanFlow(context, mine: false);
+    if (n != null && mounted) {
+      setState(() => _tab = 3);
+      _reload();
+    }
+  }
 
   /// "Gizli kalsın" / "Geri aç" (isteğe bağlı not).
   Future<void> _decide(HiddenItem x, {required bool keep}) async {
@@ -175,14 +224,17 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
     final t = Theme.of(context).textTheme;
     final (pill, color) = x.pending
         ? ('Karar bekliyor', HadiColors.heyecan)
-        : x.review == 'kept'
-            ? ('Gizli kalıyor', HadiColors.error)
-            : ('Gizli', HadiColors.ink3);
+        : x.auto
+            ? (x.retro ? 'Otomatik · geriye dönük' : 'Otomatik', HadiColors.pink)
+            : x.review == 'kept'
+                ? ('Gizli kalıyor', HadiColors.error)
+                : ('Gizli', HadiColors.ink3);
+    final selectable = _tab == 3 && !x.pending;
     return CrewQueueCard(
       thumb: _thumb(x),
       title: '${x.label} · ${x.ownerName}',
       pill: CrewPill(pill, color: color),
-      meta: '${x.pending ? 'İşaretleyen' : 'Gizleyen'}: ${x.byName}${x.at != null ? ' · ${_date(x.at!)}' : ''}',
+      meta: '${x.pending ? 'İşaretleyen' : 'Gizleyen'}: ${x.byName}${x.at != null ? ' · ${_date(x.at!)}' : ''}${x.replies > 0 ? ' · ${x.replies} yanıtıyla' : ''}',
       details: [
         if (x.preview.isNotEmpty) Text(x.preview, maxLines: 3, overflow: TextOverflow.ellipsis, style: t.bodyMedium),
         Text('Gerekçe: ${x.reason}', style: t.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
@@ -207,10 +259,15 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
             onPressed: _busyKey == x.key ? null : () => _decide(x, keep: true),
           ),
         ],
+        if (selectable)
+          Checkbox(
+            value: _sel.contains(x.key),
+            onChanged: _bulk ? null : (v) => setState(() => v == true ? _sel.add(x.key) : _sel.remove(x.key)),
+          ),
         if (!x.pending)
           TextButton.icon(
             icon: const Icon(Icons.visibility_rounded, size: 18),
-            label: const Text('Gizlemeyi kaldır'),
+            label: Text(x.kind == 'comment' ? 'Geri al' : 'Gizlemeyi kaldır'),
             onPressed: () async {
               if (await unhideContentFlow(context, x.target)) _reload();
             },
@@ -236,14 +293,31 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
           final pend = all.where((x) => x.pending).toList();
           final done = all.where((x) => !x.pending).toList();
           final apps = all.where((x) => x.appeal != null).toList();
-          counts = {0: pend.length, 1: done.length, 2: apps.length};
-          final items = switch (_tab) { 0 => pend, 1 => done, _ => apps };
+          final comments = all.where((x) => x.kind == 'comment' && !x.pending).toList();
+          counts = {0: pend.length, 1: done.length, 2: apps.length, 3: comments.length};
+          final items = switch (_tab) { 0 => pend, 1 => done, 2 => apps, _ => comments };
+          final chosen = [for (final x in comments) if (_sel.contains(x.key)) x];
           children = [
+            if (_tab == 3 && comments.isNotEmpty)
+              CrewCard(
+                child: Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                  Text('${chosen.length} seçili'),
+                  TextButton(
+                    onPressed: _bulk ? null : () => setState(() => chosen.length == comments.length ? _sel.clear() : _sel.addAll(comments.map((x) => x.key))),
+                    child: Text(chosen.length == comments.length ? 'Seçimi temizle' : 'Tümünü seç'),
+                  ),
+                  FilledButton.icon(
+                    onPressed: chosen.isEmpty || _bulk ? null : () => _bulkRestore(chosen),
+                    icon: const Icon(Icons.visibility_rounded, size: 18),
+                    label: Text(_bulk ? 'Geri alınıyor…' : 'Seçilenleri geri al'),
+                  ),
+                ]),
+              ),
             if (items.isEmpty)
               CrewCard(
                 child: CrewEmpty(
                   icon: Icons.verified_user_outlined,
-                  title: _tab == 0 ? 'Karar bekleyen içerik yok' : _tab == 1 ? 'Karara bağlanan içerik yok' : 'İtiraz yok',
+                  title: _tab == 0 ? 'Karar bekleyen içerik yok' : _tab == 1 ? 'Karara bağlanan içerik yok' : _tab == 2 ? 'İtiraz yok' : 'Gizlenen yorum yok',
                   message: _tab == 0 ? 'Bir gönderi işaretlenince burada görünür.' : null,
                 ),
               ),
@@ -257,9 +331,14 @@ class _HiddenContentScreenState extends State<HiddenContentScreen> {
           maxWidth: 960,
           gap: CrewSpace.md,
           onRefresh: () async => _reload(),
-          actions: [IconButton(tooltip: 'Yenile', onPressed: _reload, icon: const Icon(Icons.refresh_rounded))],
+          actions: [
+            // Kurucu: kendisine yönelik mevcut yorumları flört filtresiyle tara (önce önizleme, sonra Uygula).
+            if (s.isFounder)
+              TextButton.icon(onPressed: _scan, icon: const Icon(Icons.manage_search_rounded), label: const Text('Bana yapılan yorumları tara')),
+            IconButton(tooltip: 'Yenile', onPressed: _reload, icon: const Icon(Icons.refresh_rounded)),
+          ],
           toolbar: CrewFilterChips<int>(
-            options: const [(0, 'Modere edilecek'), (1, 'Karara bağlanan'), (2, 'İtirazlar')],
+            options: const [(0, 'Modere edilecek'), (1, 'Karara bağlanan'), (2, 'İtirazlar'), (3, 'Gizlenen yorumlar')],
             value: _tab,
             counts: counts,
             onChanged: (v) => setState(() => _tab = v),
