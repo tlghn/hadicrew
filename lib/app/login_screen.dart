@@ -5,7 +5,8 @@ import 'package:hadi/core/session.dart';
 import 'package:hadi/data/models.dart' show AppFailure, PhoneVerification;
 import 'package:hadi/theme/hadi_colors.dart';
 
-/// Telefonla giriş (Firebase Auth, görünmez reCAPTCHA). Uygulamadaki hesabın telefonu.
+/// Telefonla giriş: uygulamayla aynı yol (FirebaseAuthService.sendCode/confirmCode). Kurucu paneli › SMS sağlayıcı
+/// Verimor ise kodu sunucu Verimor ile gönderir; Firebase seçiliyse ya da yedeğe düşülürse Firebase (görünmez reCAPTCHA).
 /// Uygulama yalnızca ekibe (kurucular, geçici kurucular, yönetici, moderatör ve operasyon rolleri) açılır; diğer hesaplar
 /// girişten sonra kapıda durur. Asıl yetki denetimi sunucudadır.
 class CrewLoginScreen extends StatefulWidget {
@@ -18,8 +19,7 @@ class CrewLoginScreen extends StatefulWidget {
 class _CrewLoginScreenState extends State<CrewLoginScreen> {
   final _phone = TextEditingController();
   final _code = TextEditingController();
-  ConfirmationResult? _confirm;
-  PhoneVerification? _demo; // yalnızca yerel demo (PANEL_DEMO)
+  PhoneVerification? _pending; // gönderilen kod (Verimor ya da Firebase; demo dahil)
   bool _busy = false;
   String? _error;
 
@@ -66,15 +66,9 @@ class _CrewLoginScreenState extends State<CrewLoginScreen> {
       _error = null;
     });
     try {
-      final services = SessionScope.read(context).services;
-      if (services.isDemo) {
-        final v = await services.auth.sendCode(p);
-        if (mounted) setState(() => _demo = v);
-        return;
-      }
-      final r = await FirebaseAuth.instance.signInWithPhoneNumber(p);
-      if (!mounted) return;
-      setState(() => _confirm = r);
+      final v = await SessionScope.read(context).services.auth.sendCode(p);
+      if (v.autoVerified) return; // Android: SMS otomatik okundu, oturum açıldı.
+      if (mounted) setState(() => _pending = v);
     } catch (e) {
       if (mounted) setState(() => _error = _msg(e));
     } finally {
@@ -83,9 +77,9 @@ class _CrewLoginScreenState extends State<CrewLoginScreen> {
   }
 
   Future<void> _verify() async {
-    final c = _confirm;
+    final v = _pending;
     final code = _code.text.trim();
-    if ((c == null && _demo == null) || code.length != 6) {
+    if (v == null || code.length != 6) {
       setState(() => _error = '6 haneli kodu yaz.');
       return;
     }
@@ -94,11 +88,7 @@ class _CrewLoginScreenState extends State<CrewLoginScreen> {
       _error = null;
     });
     try {
-      if (_demo != null) {
-        await SessionScope.read(context).services.auth.confirmCode(_demo!, code);
-      } else {
-        await c!.confirm(code);
-      }
+      await SessionScope.read(context).services.auth.confirmCode(v, code);
     } catch (e) {
       if (mounted) setState(() => _error = _msg(e));
     } finally {
@@ -109,7 +99,7 @@ class _CrewLoginScreenState extends State<CrewLoginScreen> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final sent = _confirm != null || _demo != null;
+    final sent = _pending != null;
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -158,8 +148,7 @@ class _CrewLoginScreenState extends State<CrewLoginScreen> {
                   onPressed: _busy
                       ? null
                       : () => setState(() {
-                            _confirm = null;
-                            _demo = null;
+                            _pending = null;
                             _code.clear();
                             _error = null;
                           }),
