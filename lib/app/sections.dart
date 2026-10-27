@@ -37,6 +37,9 @@ import '../ops/secondhand/sh_settings_admin.dart' show ShSettingsAdminTab;
 import '../ops/notify_studio/ns_studio_screen.dart' show NotifyStudioScreen, canNotifySend, canNotifyApprove;
 import 'package:hadi/features/books/books_admin.dart' show BooksAdminScreen;
 import 'package:hadi/features/events/tanisma/tanisma_admin.dart' show TanismaAdminScreen;
+import 'package:hadi/features/events/wizard/event_wizard.dart' show EventWizardScreen;
+import 'package:hadi/data/event_ai_service.dart' show kEventAiService;
+import 'package:hadi/core/service_switches.dart' show ServiceSwitches;
 import '../ops/pro/pro_admin.dart' show ProLicenseAdminTab, canReviewPro;
 import 'package:hadi/features/creator_subs/creator_subs_admin.dart' show CreatorReviewQueueTab;
 import '../ops/support/support_admin.dart' show SupportTicketsScreen;
@@ -294,6 +297,14 @@ final List<CrewSection> kCrewSections = [
     id: 'yolculuklar', title: 'Yolculuk anlaşmazlıkları', subtitle: 'Paylaşımlı yolculuk şikâyetleri', icon: Icons.directions_car_rounded, group: CrewGroup.etkinlik,
     visible: _staff, build: () => const RideDisputesScreen(), aliases: const ['/yonetim/yolculuklar'],
     keys: 'yolculuk araç paylaşımı şikayet anlaşmazlık sürücü yolcu',
+  ),
+  // Etkinlik Ekleme Sihirbazı (hadi › features/events/wizard/event_wizard.dart; functions/src/event_ai.ts). Hizmet event_ai_assistant
+  // gizliyse bölüm görünmez. Tür yetkisi sunucuda (kurucu/yönetici: kulüp + tanışma serisi).
+  CrewSection(
+    id: 'etkinlik-sihirbazi', title: 'Etkinlik sihirbazı', subtitle: 'Anlat; YZ türü seçsin, formu ve görselleri hazırlasın', icon: Icons.auto_awesome_rounded,
+    group: CrewGroup.etkinlik, visible: (s) => s.isAdmin && !ServiceSwitches.instance.isHidden(kEventAiService),
+    build: () => const EventWizardScreen(embedded: true), aliases: const ['/etkinlik-sihirbazi'],
+    keys: 'etkinlik sihirbaz yapay zeka yz ai oluştur ekle taslak görsel tanışma serisi otomatik doldur prompt',
   ),
   CrewSection(
     id: 'etkinlik-ekle', title: 'Etkinlik ekle', subtitle: 'Kulüp etkinliği oluştur ve yayımla', icon: Icons.add_circle_rounded, group: CrewGroup.etkinlik,

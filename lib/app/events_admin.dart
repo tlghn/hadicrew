@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hadi/features/events/event_edit_screen.dart' show EventEditScreen;
+import 'package:hadi/features/events/wizard/event_wizard.dart' show EventWizardLink;
 import 'package:hadi/theme/hadi_colors.dart';
 
 /// Kulüp etkinliği oluştur (yönetim kipi). Kaydedince [EventCreatedPage]'e geçer.
@@ -10,8 +11,17 @@ class EventCreateScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ColoredBox(
         color: Theme.of(context).scaffoldBackgroundColor,
-        // Uygulamanın telefon formu: geniş ekranda okunur genişlikte ortalanır.
-        child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720), child: const EventEditScreen())),
+        // Uygulamanın telefon formu: geniş ekranda okunur genişlikte ortalanır. Üstte belirgin "Sihirbazla etkinlik oluştur" kartı
+        // (hadi › features/events/wizard/event_wizard.dart; hizmet event_ai_assistant kapalıysa görünmez).
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Column(children: [
+              const Padding(padding: EdgeInsets.fromLTRB(16, 12, 16, 0), child: EventWizardLink(kind: 'club', prominent: true)),
+              const Expanded(child: EventEditScreen(showWizardLink: false)),
+            ]),
+          ),
+        ),
       );
 }
 
