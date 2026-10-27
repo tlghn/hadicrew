@@ -19,9 +19,13 @@ class PanelEntry {
     this.description = '',
     this.keys = '',
     this.sections = const [],
+    this.pinned = false,
   });
 
   final String id, title, category, description;
+
+  /// Kategorisinin en üstünde (alfabetik sıradan önce; kurucu 27 Ekim 14:40: "Etkinlikler" listesi grubun en üstünde).
+  final bool pinned;
   final IconData icon;
 
   /// Aramada bulunması için ek sözcükler (eski `keys` + eş anlamlılar), boşlukla ayrılmış.
@@ -31,7 +35,7 @@ class PanelEntry {
   final List<String> sections;
 }
 
-/// Kategorilere ayırır; kategoriler ve içlerindeki sekmeler Türk alfabesine göre sıralı.
+/// Kategorilere ayırır; kategoriler ve içlerindeki sekmeler Türk alfabesine göre sıralı ([PanelEntry.pinned] olanlar en üstte).
 List<({String category, List<PanelEntry> entries})> groupByCategory(Iterable<PanelEntry> entries) {
   final by = <String, List<PanelEntry>>{};
   for (final e in entries) {
@@ -39,7 +43,7 @@ List<({String category, List<PanelEntry> entries})> groupByCategory(Iterable<Pan
   }
   final cats = by.keys.toList()..sort(trCompare);
   return [
-    for (final c in cats) (category: c, entries: by[c]!..sort((a, b) => trCompare(a.title, b.title))),
+    for (final c in cats) (category: c, entries: by[c]!..sort((a, b) => a.pinned != b.pinned ? (a.pinned ? -1 : 1) : trCompare(a.title, b.title))),
   ];
 }
 

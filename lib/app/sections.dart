@@ -38,6 +38,8 @@ import '../ops/notify_studio/ns_studio_screen.dart' show NotifyStudioScreen, can
 import 'package:hadi/features/books/books_admin.dart' show BooksAdminScreen;
 import 'package:hadi/features/events/tanisma/tanisma_admin.dart' show TanismaAdminScreen;
 import 'package:hadi/features/events/wizard/event_wizard.dart' show EventWizardScreen;
+import 'package:hadi/features/events/admin/events_admin_list.dart' show EventsAdminListScreen;
+import 'package:go_router/go_router.dart';
 import 'package:hadi/data/event_ai_service.dart' show kEventAiService;
 import 'package:hadi/core/service_switches.dart' show ServiceSwitches;
 import '../ops/pro/pro_admin.dart' show ProLicenseAdminTab, canReviewPro;
@@ -86,7 +88,11 @@ class CrewSection {
     this.aliases = const [],
     this.queue = false,
     this.keys = '',
+    this.pinned = false,
   });
+
+  /// Kategorisinin en üstünde (panel_kit › PanelEntry.pinned).
+  final bool pinned;
 
   final String id, title, subtitle;
   final IconData icon;
@@ -298,6 +304,13 @@ final List<CrewSection> kCrewSections = [
     visible: _staff, build: () => const RideDisputesScreen(), aliases: const ['/yonetim/yolculuklar'],
     keys: 'yolculuk araç paylaşımı şikayet anlaşmazlık sürücü yolcu',
   ),
+  // Crew › Etkinlikler: tüm etkinlikleri bul ve düzenle (hadi › features/events/admin/events_admin_list.dart; sunucu event_admin.ts).
+  // Etkinlik grubunun en üstünde (kenar çubuğunda sıra alfabetik; "Etkinlikler" grubun ilk bölümü olur).
+  CrewSection(
+    id: 'etkinlikler', title: 'Etkinlikler', subtitle: 'Tüm etkinlikleri bul, düzenle, seriyi yönet, iptal et', icon: Icons.event_note_rounded,
+    group: CrewGroup.etkinlik, visible: _admin, build: () => const _EventsAdminSection(), aliases: const ['/yonetim/etkinlikler'],
+    keys: 'etkinlik liste düzenle ara bul seri tekrar iptal yayından kaldır katılımcı kopyala geçmiş yaklaşan taslak', pinned: true,
+  ),
   // Etkinlik Ekleme Sihirbazı (hadi › features/events/wizard/event_wizard.dart; functions/src/event_ai.ts). Hizmet event_ai_assistant
   // gizliyse bölüm görünmez. Tür yetkisi sunucuda (kurucu/yönetici: kulüp + tanışma serisi).
   CrewSection(
@@ -386,7 +399,7 @@ int queueTotal(Iterable<CrewSection> visible, CrewDash? d) => queueTotalOf([for 
 
 /// Arama/menü girdisi (panel_kit). Açıklama = alt başlık; kategori = grubun adı.
 PanelEntry crewEntry(CrewSection x) =>
-    PanelEntry(id: x.id, title: x.title, icon: x.icon, category: x.group.label, description: x.subtitle, keys: x.keys);
+    PanelEntry(id: x.id, title: x.title, icon: x.icon, category: x.group.label, description: x.subtitle, keys: x.keys, pinned: x.pinned);
 
 /// Kişinin görebildiği bölümler (arama ve YZ önerisi YALNIZCA bunlarla çalışır; rol bazlı görünürlük korunur).
 List<PanelEntry> crewEntries(Session s, {bool includeGeneral = true}) =>
@@ -403,4 +416,12 @@ class _Padded extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text(title)), body: child);
+}
+
+/// Crew › Etkinlikler: onay bekleyen öneriye dokununca ilgili inceleme bölümü açılır.
+class _EventsAdminSection extends StatelessWidget {
+  const _EventsAdminSection();
+
+  @override
+  Widget build(BuildContext context) => EventsAdminListScreen(onOpenSection: (id) => context.go('/b/$id'));
 }
