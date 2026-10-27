@@ -9,13 +9,14 @@ import 'package:hadi/widgets/instant.dart' show InlineError;
 
 import 'charts.dart';
 import 'crew_api.dart';
+import 'crew_counts.dart';
 import 'sections.dart';
 import 'shell.dart' show openSection;
 
-/// Panodaki son veri: kenar çubuğu ve alt menü rozetleri de bunu dinler.
-final ValueNotifier<CrewDash?> crewDashNotifier = ValueNotifier<CrewDash?>(null);
+export 'crew_counts.dart' show crewDashNotifier;
 
-/// Pano: bekleyen işler, topluluk özeti ve günlük eğilimler. 60 sn'de bir kendiliğinden yenilenir.
+/// Pano: bekleyen işler, topluluk özeti ve günlük eğilimler. Kuyruk sayıları rozetlerle AYNI kaynaktan (crew_counts.dart:
+/// 30 sn'de bir, odakta ve her işlemden sonra); topluluk sayıları ve seriler Pano açıkken 60 sn'de bir yenilenir.
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -50,7 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     try {
       final d = await CrewApi.dash(SessionScope.read(context).services, days: _days);
-      crewDashNotifier.value = d;
+      CrewCounts.instance.apply(d);
       if (mounted) setState(() => _error = null);
     } on AppFailure catch (e) {
       if (mounted && !quiet) setState(() => _error = e.message);
@@ -108,7 +109,9 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final queues = [for (final x in visibleSections(session)) if (x.queue && x.countKey != null) x];
+    final visible = visibleSections(session);
+    final queues = [for (final x in visible) if (x.queue && x.countKeys.isNotEmpty) x];
+    final total = queueTotal(visible, dash);
     final c = dash.counts;
     final community = <(String, int?, IconData, Color)>[
       if (c.containsKey('members')) ('Üye', c['members'], Icons.groups_rounded, HadiColors.aktivite),
@@ -128,10 +131,10 @@ class _Body extends StatelessWidget {
         Row(children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(dash.pendingTotal == 0 ? 'Bekleyen iş yok 🎉' : '${dash.pendingTotal} bekleyen iş',
+              Text(total == 0 ? 'Bekleyen iş yok 🎉' : '$total bekleyen iş',
                   style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
-              Text('Son güncelleme ${_hm(dash.at)} · dakikada bir yenilenir', style: text.bodySmall?.copyWith(color: HadiColors.ink3)),
+              Text('Son güncelleme ${_hm(dash.at)} · her işlemden sonra ve 30 sn\'de bir yenilenir', style: text.bodySmall?.copyWith(color: HadiColors.ink3)),
             ]),
           ),
           _RoleChip(role: dash.role),
@@ -141,7 +144,7 @@ class _Body extends StatelessWidget {
           _Title('Kuyruklar'),
           _Grid(children: [
             for (final q in queues)
-              _QueueTile(section: q, count: q.id == 'isletmeler' ? _sum(c, const ['businessApps', 'businessEvents']) : c[q.countKey!]),
+              _QueueTile(section: q, count: sectionCount(q, dash)),
           ]),
           const SizedBox(height: 22),
         ],
@@ -199,15 +202,6 @@ class _Body extends StatelessWidget {
       ],
     );
   }
-}
-
-int? _sum(Map<String, int?> c, List<String> keys) {
-  int? t;
-  for (final k in keys) {
-    final v = c[k];
-    if (v != null) t = (t ?? 0) + v;
-  }
-  return t;
 }
 
 String _hm(DateTime d) => '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';

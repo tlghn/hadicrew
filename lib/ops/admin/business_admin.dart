@@ -13,6 +13,7 @@ import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/core/app_lock.dart';
 import 'package:hadi/widgets/skeleton.dart';
 import 'package:hadi/features/fun/_placeholders.dart';
+import '../../app/crew_counts.dart' show CountTab, CrewCounts;
 import 'commerce_config_admin.dart';
 import 'package:hadi/core/ui_gate.dart';
 
@@ -53,11 +54,12 @@ class BusinessAdminTab extends StatelessWidget {
     final body = DefaultTabController(
       length: 5,
       child: Column(children: [
+        // Sekme rozetleri: kenar menüdeki "İşletmeler" sayısının hangi sekmede olduğunu gösterir (crew_dash.ts › QUEUES).
         const TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [
-          Tab(text: 'Başvurular'),
-          Tab(text: 'Etkinlikler'),
-          Tab(text: 'Ödemeler'),
-          Tab(text: 'Anlaşmazlıklar'),
+          CountTab(text: 'Başvurular', keys: ['businessApps']),
+          CountTab(text: 'Etkinlikler', keys: ['businessEvents']),
+          CountTab(text: 'Ödemeler', keys: ['businessPayouts']),
+          CountTab(text: 'Anlaşmazlıklar', keys: ['businessDisputes']),
           Tab(text: 'Ayarlar'),
         ]),
         const Expanded(
@@ -110,6 +112,7 @@ class _ApplicationsState extends State<_Applications> with _Runner {
   Future<void> _load() async {
     try {
       final r = await BusinessService.instance.reviewList();
+      CrewCounts.instance.reconcile('businessApps', r.items.length, complete: r.items.length < 50);
       if (mounted) setState(() {
         _items = r.items;
         _error = null;
@@ -238,6 +241,7 @@ class _EventsState extends State<_Events> with _Runner {
   Future<void> _load() async {
     try {
       final r = await BusinessService.instance.pendingEvents();
+      CrewCounts.instance.reconcile('businessEvents', r.length, complete: r.length < 50);
       if (mounted) setState(() {
         _items = r;
         _error = null;
@@ -328,6 +332,7 @@ class _PayoutsState extends State<_Payouts> with _Runner {
   Future<void> _load() async {
     try {
       final r = await BusinessService.instance.pendingPayouts();
+      CrewCounts.instance.reconcile('businessPayouts', r.length, complete: r.length < 50);
       if (mounted) setState(() {
         _items = r;
         _error = null;
@@ -493,6 +498,7 @@ class _DisputesState extends State<_Disputes> with _Runner {
   Future<void> _load() async {
     try {
       final r = await BusinessService.instance.orderDisputes();
+      CrewCounts.instance.reconcile('businessDisputes', r.length, complete: r.length < 100);
       final c = await BusinessService.instance.orderConfig();
       if (!mounted) return;
       setState(() {

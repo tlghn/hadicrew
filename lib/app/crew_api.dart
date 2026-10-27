@@ -5,10 +5,11 @@ import 'package:hadi/data/services.dart';
 
 /// Pano verisi (functions/src/crew_dash.ts › `crewDash`). Yalnızca çağıranın yetkisindeki kuyruklar döner.
 class CrewDash {
-  const CrewDash({required this.access, required this.role, required this.counts, this.series, required this.at});
+  const CrewDash({required this.access, required this.role, required this.counts, this.series, required this.at, this.partial = false});
 
-  /// Erişilebilen kuyruklar: applications, reports, liveReports, tickets, idReviews, addressReviews, kahveReviews,
-  /// businessApps, businessEvents, courierApps, storeOrders.
+  /// Erişilebilen kuyruklar (crew_dash.ts › QUEUES): applications, reports, modFlags, aiLabel, liveReports, tickets, idReviews,
+  /// addressReviews, kahveReviews, businessApps/Events/Payouts/Disputes, courierApps/Cases/Payouts, creatorReviews,
+  /// secondhand, storeOrders, proLicenses, notifyApprovals.
   final Set<String> access;
 
   /// founder | admin | moderator | operator
@@ -17,16 +18,14 @@ class CrewDash {
   final CrewSeries? series;
   final DateTime at;
 
+  /// `crewDash › counts` yanıtı: yalnız kuyruk sayıları (topluluk sayıları ve seriler yok; crew_counts.dart birleştirir).
+  final bool partial;
+
   int? count(String k) => counts[k];
 
-  /// Bekleyen işlerin toplamı (yetkili olunan kuyruklar).
-  int get pendingTotal {
-    var n = 0;
-    for (final k in const ['applications', 'reports', 'modFlags', 'aiLabel', 'liveReports', 'ticketsOpen', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'courierApps', 'storeOrders', 'proLicenses', 'notifyApprovals']) {
-      n += counts[k] ?? 0;
-    }
-    return n;
-  }
+  /// Tek sayacı değiştirilmiş kopya (iyimser güncelleme / listeyle eşitleme).
+  CrewDash withCount(String k, int v) =>
+      CrewDash(access: access, role: role, counts: {...counts, k: v}, series: series, at: at, partial: partial);
 
   static CrewDash fromMap(Map<String, dynamic> m) {
     final c = OpsApi.map(m['counts']);
@@ -37,6 +36,7 @@ class CrewDash {
       counts: {for (final e in c.entries) e.key: e.value is num ? (e.value as num).toInt() : null},
       series: s is Map ? CrewSeries.fromMap(Map<String, dynamic>.from(s)) : null,
       at: DateTime.fromMillisecondsSinceEpoch(m['at'] is num ? (m['at'] as num).toInt() : DateTime.now().millisecondsSinceEpoch),
+      partial: m['partial'] == true,
     );
   }
 }
@@ -68,6 +68,12 @@ abstract final class CrewApi {
     return CrewDash.fromMap(await OpsApi.call('crewDash', 'dash', {'days': days}));
   }
 
+  /// Yalnız kuyruk sayıları (rozet yenilemesi; ucuz). crew_counts.dart çağırır.
+  static Future<CrewDash> counts(Services services) async {
+    if (services.isDemo) return _demo(30);
+    return CrewDash.fromMap(await OpsApi.call('crewDash', 'counts'));
+  }
+
   /// Firebase'siz yerel deneme (PANEL_DEMO): tutarlı örnek sayılar.
   static CrewDash _demo(int days) {
     final r = math.Random(7);
@@ -80,11 +86,12 @@ abstract final class CrewApi {
     }
 
     return CrewDash(
-      access: const {'applications', 'reports', 'modFlags', 'aiLabel', 'liveReports', 'tickets', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'courierApps', 'storeOrders', 'proLicenses', 'notifyApprovals'},
+      access: const {'applications', 'reports', 'modFlags', 'aiLabel', 'liveReports', 'tickets', 'idReviews', 'addressReviews', 'kahveReviews', 'businessApps', 'businessEvents', 'businessPayouts', 'businessDisputes', 'courierApps', 'courierCases', 'courierPayouts', 'creatorReviews', 'storeOrders', 'proLicenses', 'notifyApprovals'},
       role: 'founder',
       counts: const {
-        'applications': 12, 'reports': 7, 'liveReports': 1, 'ticketsOpen': 5, 'ticketsInProgress': 3, 'idReviews': 4, 'addressReviews': 2,
-        'kahveReviews': 0, 'aiLabel': 3, 'businessApps': 3, 'businessEvents': 2, 'courierApps': 1, 'storeOrders': 4, 'proLicenses': 2, 'notifyApprovals': 1, 'liveNow': 2, 'eventsNext7d': 9,
+        'applications': 12, 'reports': 7, 'liveReports': 1, 'ticketsAwaiting': 4, 'ticketsOpen': 5, 'ticketsInProgress': 3, 'idReviews': 4, 'addressReviews': 2,
+        'kahveReviews': 0, 'aiLabel': 3, 'businessApps': 3, 'businessEvents': 2, 'businessPayouts': 1, 'businessDisputes': 1, 'courierApps': 1,
+        'courierCases': 1, 'courierPayouts': 0, 'creatorReviews': 2, 'storeOrders': 4, 'proLicenses': 2, 'notifyApprovals': 1, 'liveNow': 2, 'eventsNext7d': 9,
         'members': 1284, 'premium': 173, 'dau': 312, 'wau': 744, 'mau': 1033,
       },
       series: CrewSeries(days: keys, lines: {

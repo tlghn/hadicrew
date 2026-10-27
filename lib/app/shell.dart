@@ -9,7 +9,7 @@ import '../panel_kit/panel_ai.dart' show panelAiAsker;
 import '../panel_kit/panel_nav_menu.dart';
 import '../panel_kit/panel_prefs.dart';
 import 'crew_api.dart';
-import 'dashboard.dart' show crewDashNotifier;
+import 'crew_counts.dart';
 import 'sections.dart';
 
 /// Geniş ekran eşiği: üstünde solda kalıcı kenar çubuğu, altında alt menü.
@@ -41,15 +41,14 @@ Future<void> openCrewSearch(BuildContext context) async {
   }
 }
 
-/// Bölüm sayacı (panodaki son veriden): İşletmeler başvuru + etkinlik toplamı.
-int? sectionCount(CrewSection s, CrewDash? d) {
-  if (d == null || s.countKey == null) return null;
-  if (s.id == 'isletmeler') {
-    final a = d.count('businessApps'), b = d.count('businessEvents');
-    if (a == null && b == null) return null;
-    return (a ?? 0) + (b ?? 0);
-  }
-  return d.count(s.countKey!);
+/// Son açılan bölüm/sekme (bölüme her girişte sayılar bir kez tazelenir; yeniden çizimlerde değil).
+String? _lastShown;
+
+/// Çıkış: rozet yenilemesini durdurur ve sayıları siler (sonraki kişi eski sayıları görmez).
+Future<void> crewSignOut(Session s) {
+  CrewCounts.instance.stop();
+  _lastShown = null;
+  return s.signOut();
 }
 
 /// Kök: geniş ekranda kenar çubuğu + içerik; telefonda alt menülü sekmeler (Pano · Kuyruklar · Üyeler · Tümü).
@@ -65,6 +64,15 @@ class CrewShell extends StatelessWidget {
     final s = SessionScope.of(context);
     final wide = MediaQuery.sizeOf(context).width >= kWide;
     final current = section ?? sectionById('pano')!;
+    // Rozet sayıları: oturum boyunca tek kaynak (crew_counts.dart). Bir bölüme / sekmeye girince hemen tazelenir.
+    final shown = section?.id ?? tab;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final c = CrewCounts.instance;
+      final wasRunning = c.running;
+      c.ensureStarted(s.uid, () => CrewApi.counts(s.services));
+      if (wasRunning && _lastShown != shown) c.refreshSoon(Duration.zero);
+      _lastShown = shown;
+    });
     // Son kullanılanlar (bu cihazda, son 5) ve menüde kategorisi açık olsun.
     if (section != null && section!.id != 'pano') {
       final id = section!.id;
@@ -140,8 +148,8 @@ class CrewShell extends StatelessWidget {
           destinations: [
             for (final t in tabs)
               NavigationDestination(
-                icon: t.$1 == 'kuyruklar' && (d?.pendingTotal ?? 0) > 0
-                    ? Badge(label: Text('${d!.pendingTotal > 99 ? '99+' : d.pendingTotal}'), child: Icon(t.$2))
+                icon: t.$1 == 'kuyruklar' && queueTotal(visibleSections(s), d) > 0
+                    ? Badge(label: Text(_n99(queueTotal(visibleSections(s), d))), child: Icon(t.$2))
                     : Icon(t.$2),
                 label: t.$3,
               ),
@@ -173,14 +181,14 @@ class _Sidebar extends StatelessWidget {
           final x = sectionById(e.id);
           return x == null ? null : sectionCount(x, d);
         },
-        actions: [IconButton(tooltip: 'Çıkış yap', onPressed: () => session.signOut(), icon: const Icon(Icons.logout_rounded, size: 20))],
+        actions: [IconButton(tooltip: 'Çıkış yap', onPressed: () => crewSignOut(session), icon: const Icon(Icons.logout_rounded, size: 20))],
         top: [
           _TopTile(icon: Icons.space_dashboard_rounded, label: 'Pano', selected: current == 'pano', onTap: () => context.go('/')),
           _TopTile(
             icon: Icons.inbox_rounded,
             label: 'Kuyruklar',
             selected: current == 'kuyruklar',
-            count: d?.pendingTotal,
+            count: queueTotal(visibleSections(session), d),
             onTap: () => context.go('/kuyruklar'),
           ),
         ],
@@ -217,6 +225,8 @@ class _TopTile extends StatelessWidget {
     );
   }
 }
+
+String _n99(int n) => n > 99 ? '99+' : '$n';
 
 class _CountPill extends StatelessWidget {
   const _CountPill(this.n);
@@ -256,7 +266,7 @@ class QueuesPage extends StatelessWidget {
           if (d == null)
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text('Sayılar Pano açıldığında yüklenir.', textAlign: TextAlign.center, style: TextStyle(color: HadiColors.ink3, fontSize: 12.5)),
+              child: Text('Sayılar yükleniyor…', textAlign: TextAlign.center, style: TextStyle(color: HadiColors.ink3, fontSize: 12.5)),
             ),
         ]),
       ),
@@ -277,7 +287,7 @@ class AllSectionsPage extends StatelessWidget {
         title: const Text('Tümü'),
         actions: [
           IconButton(tooltip: 'Ara ya da sor', onPressed: () => openCrewSearch(context), icon: const Icon(Icons.search_rounded)),
-          IconButton(tooltip: 'Çıkış yap', onPressed: () => s.signOut(), icon: const Icon(Icons.logout_rounded)),
+          IconButton(tooltip: 'Çıkış yap', onPressed: () => crewSignOut(s), icon: const Icon(Icons.logout_rounded)),
         ],
       ),
       body: ValueListenableBuilder<CrewDash?>(

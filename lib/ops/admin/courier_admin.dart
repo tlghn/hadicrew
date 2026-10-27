@@ -19,6 +19,7 @@ import 'package:hadi/widgets/reason_dialog.dart';
 import 'package:hadi/widgets/skeleton.dart';
 import 'package:hadi/features/courier/courier_widgets.dart';
 import 'package:hadi/core/ui_gate.dart';
+import '../../app/crew_counts.dart' show CountTab, CrewCounts;
 
 class CourierAdminTab extends StatelessWidget {
   const CourierAdminTab({super.key, this.embedded = true});
@@ -29,11 +30,12 @@ class CourierAdminTab extends StatelessWidget {
     final body = DefaultTabController(
       length: 5,
       child: Column(children: [
+        // Sekme rozetleri: kenar menüdeki "Kuryeler" sayısının hangi sekmede olduğunu gösterir (crew_dash.ts › QUEUES).
         const TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [
-          Tab(text: 'Başvurular'),
+          CountTab(text: 'Başvurular', keys: ['courierApps']),
           Tab(text: 'Yenilemeler'),
-          Tab(text: 'Uyuşmazlıklar'),
-          Tab(text: 'Ödemeler'),
+          CountTab(text: 'Uyuşmazlıklar', keys: ['courierCases']),
+          CountTab(text: 'Ödemeler', keys: ['courierPayouts']),
           Tab(text: 'Ayarlar'),
         ]),
         const Expanded(child: TabBarView(children: [_Apps(status: 'pending'), _Apps(status: 'renewals'), _Cases(), _Payouts(), _Settings()])),
@@ -75,6 +77,8 @@ class _AppsState extends State<_Apps> {
 
   Future<void> _load() async {
     final r = await _call(context, 'reviewList', {'status': _status});
+    final n = (r?['items'] as List?)?.length;
+    if (_status == 'pending' && n != null) CrewCounts.instance.reconcile('courierApps', n, complete: n < 60);
     if (mounted) setState(() => _items = [for (final x in (r?['items'] as List?) ?? const []) if (x is Map) x.map((k, v) => MapEntry('$k', v))]);
   }
 
@@ -336,6 +340,8 @@ class _CasesState extends State<_Cases> {
 
   Future<void> _load() async {
     final r = await _call(context, 'cases', {'status': _status});
+    final n = (r?['items'] as List?)?.length;
+    if (_status == 'open' && n != null) CrewCounts.instance.reconcile('courierCases', n, complete: n < 60);
     if (mounted) setState(() => _items = [for (final x in (r?['items'] as List?) ?? const []) if (x is Map) x.map((k, v) => MapEntry('$k', v))]);
   }
 
@@ -452,6 +458,8 @@ class _PayoutsState extends State<_Payouts> {
 
   Future<void> _load() async {
     final r = await _call(context, 'payoutsPending');
+    final n = (r?['items'] as List?)?.length;
+    if (n != null) CrewCounts.instance.reconcile('courierPayouts', n, complete: n < 60);
     if (mounted) setState(() => _items = [for (final x in (r?['items'] as List?) ?? const []) if (x is Map) x.map((k, v) => MapEntry('$k', v))]);
   }
 
