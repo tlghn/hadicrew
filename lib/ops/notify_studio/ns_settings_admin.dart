@@ -156,7 +156,7 @@ class _NotifyStudioSettingsTabState extends State<NotifyStudioSettingsTab> {
             _num('consentBonusAkce', 'İzin verene bir kerelik hediye', suffix: '🪙 Akçe', helper: '0 = yok. Vermeyen hiçbir şeyden mahrum kalmaz'),
           ]),
           const CrewNote('Teşekkür hediyesi Hareketler\'de "Fırsat bildirimleri hediyesi" olarak görünür; izin geri alınınca da üyede kalır. '
-              'Kurucu paneli › Hizmetler › "Bildirim stüdyosu · rıza teşekkür Akçe\'si" ile tamamen kapatılabilir.'),
+              'Yönetim, Hizmetler › "Bildirim stüdyosu · rıza teşekkür Akçe\'si" ile tamamen kapatabilir.'),
         ]),
         CrewCard(
           title: 'Kitle verisi',

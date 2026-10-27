@@ -124,7 +124,7 @@ class _LicensesState extends State<_Licenses> {
             else ...[
               CrewNote(s.data!.fourEyes
                   ? 'Dört göz açık: onay için iki farklı yetkili gerekir. Belge karar verilir verilmez silinir; her açılış üyenin "Verime erişimler" ekranına yazılır.'
-                  : 'Dört göz kapalı (Kurucu Paneli › Profesyonel profiller › Ayarlar).'),
+                  : 'Dört göz kapalı (yönetim › Profesyonel profiller › Ayarlar).'),
               if (s.data!.items.isEmpty) const CrewEmpty(title: 'Bekleyen başvuru yok', message: 'Yeni lisans belgesi gelince burada ve panoda görünür.', icon: Icons.verified_outlined),
               for (final x in s.data!.items) _card(x, s.data!.me, s.data!.docTypes),
             ],
@@ -450,7 +450,7 @@ class _ConfigCardState extends State<_ConfigCard> {
             TextField(controller: _days, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Karar verilmeyen belge saklama', suffixText: 'gün', helperText: '3–90')),
             TextField(controller: _rpd, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Günlük talep sınırı (üye)', helperText: '1–200')),
           ]),
-          const CrewNote('Hizmeti tamamen kapatmak için: Kurucu Paneli › Hizmetler › "Profesyonel profil".'),
+          const CrewNote('Hizmeti tamamen kapatmak için: yönetim › Hizmetler › "Profesyonel profil".'),
         ],
       );
 }
@@ -633,7 +633,7 @@ class _ProfessionEditorState extends State<_ProfessionEditor> {
     final ok = await crewConfirm(
       context,
       title: reset ? 'Varsayılana döndürülsün mü?' : '"${widget.p!.label}" gizlensin mi?',
-      message: reset ? 'Kurucu Paneli değişiklikleri silinir, kod varsayılanı geçerli olur.' : 'Meslek seçim listesinden kalkar; mevcut profiller etkilenmez ama yeni seçilemez.',
+      message: reset ? 'Yönetimin yaptığı değişiklikler silinir, kod varsayılanı geçerli olur.' : 'Meslek seçim listesinden kalkar; mevcut profiller etkilenmez ama yeni seçilemez.',
       danger: !reset,
     );
     if (!ok || !mounted) return;

@@ -41,7 +41,7 @@ class ModQueueScreen extends StatelessWidget {
                 bottom: off ? null : const TabBar(tabs: [Tab(text: 'Kuyruk'), Tab(text: 'İtirazlar')]),
               ),
               body: off
-                  ? const _OffNote(text: 'Moderasyon kuyruğu kapalı. Ana kurucu kurucu paneli › Hizmetler › Moderasyon kuyruğu ile açabilir. '
+                  ? const _OffNote(text: 'Moderasyon kuyruğu kapalı. Yönetim, Hizmetler › Moderasyon kuyruğu ile açabilir. '
                       'Şikayetler ekranı çalışmaya devam eder.')
                   : const TabBarView(children: [_QueueTab(), _AppealsTab()]),
             ),

@@ -250,7 +250,7 @@ class _AiVideoAdminTabState extends State<AiVideoAdminTab> {
                   const SizedBox(height: 6),
                   Text(
                     'Fiyat: Fiyatlar sekmesinde "AI video" (şu an ${cfg?['price'] ?? '-'}💎, Premium ${cfg?['premiumPrice'] ?? '-'}💎; yalnızca Elmas, kurucular da öder). '
-                    '${_provider == 'fal' ? 'fal.ai anahtarı: ${cfg?['falKey'] == true ? 'girildi ✓' : 'GİRİLMEDİ — ana kurucu Kurucu paneli › API anahtarları › fal.ai'}' : 'Replicate belirteci: ${cfg?['replicateKey'] == true ? 'girildi ✓' : 'GİRİLMEDİ — ana kurucu Kurucu paneli › API anahtarları › Replicate'}'}. '
+                    '${_provider == 'fal' ? 'fal.ai anahtarı: ${cfg?['falKey'] == true ? 'girildi ✓' : 'GİRİLMEDİ — yönetim girmeli (API anahtarları › fal.ai)'}' : 'Replicate belirteci: ${cfg?['replicateKey'] == true ? 'girildi ✓' : 'GİRİLMEDİ — yönetim girmeli (API anahtarları › Replicate)'}'}. '
                     'Video başına maliyet (fal.ai pixverse/swap, 720p): ≤5 sn ≈ 0,20 \$, 5–10 sn ≈ 0,40 \$.',
                     style: TextStyle(color: HadiColors.ink2, height: 1.4),
                   ),

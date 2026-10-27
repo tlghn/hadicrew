@@ -1,5 +1,6 @@
-// HADİ — Saha testi: Test bulguları (YALNIZ Kurucu paneli › Saha testi; 27 Ekim 2026'dan beri Crew'da yok — kurucu: "test
-// bulguları crew'da olmasın, sadece kurucuda olmalı". Dosya hadi_crew paketinde kalır çünkü Kurucu paneli buradan içe aktarır). Sunucu: functions/src/field_test.ts
+// HADİ — Saha testi: Test bulguları, TAM YETKİLİ görünüm (yalnız Kurucu paneli › Saha testi; Crew bunu içe aktarmaz). Crew'daki
+// SALT-OKUNUR görünüm ayrıdır: field_test_crew_view.dart (Crew'a girebilen her rol, 27 Ekim 2026 kurucu 03:23). Dosya hadi_crew
+// paketinde kalır çünkü Kurucu paneli buradan içe aktarır. Sunucu: functions/src/field_test.ts
 // (`feedback` callable › ftList / ftGet / ftUpdate / ftExport; ayar ftConfigGet / ftConfigSet yalnızca ana kurucu).
 //
 //   FieldTestFindingsScreen   liste (durum · tür · önem · test eden süzgeçleri), çoklu seçim → JSON kopyala / indir,
@@ -718,7 +719,7 @@ class _FieldTestConfigCardState extends State<FieldTestConfigCard> {
                         ChoiceChip(selected: c['recipients'] == id, label: Text(label), onSelected: (_) => c['recipients'] == id ? null : _save({'recipients': id}, 'Alıcı: $label')),
                     ]),
                     const SizedBox(height: 4),
-                    Text('"Tüm kurucular" seçiliyse kurucular bulguları HADİ Crew › Test bulguları\'nda da görür.', style: TextStyle(color: HadiColors.ink3, fontSize: 12)),
+                    Text('Alıcılar bildirim alır ve bulguları burada tam yetkiyle yönetir. Bundan bağımsız olarak HADİ Crew\'a girebilen her ekip üyesi bulguları Crew › Test bulguları\'nda salt okunur görür (açıklama, ekran görüntüsü, ekip notları; yapay zekâ ve Claude yazıları, kimlik ve kararlar olmadan).', style: TextStyle(color: HadiColors.ink3, fontSize: 12)),
                   ]),
       ),
     );

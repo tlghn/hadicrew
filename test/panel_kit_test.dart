@@ -224,7 +224,8 @@ void main() {
       final ft = sections.firstWhere((s) => s.id == 'test-bulgulari');
       expect(labels[ft.group], 'Test ve kalite');
       final block = blocks.firstWhere((b) => b.contains("id: 'test-bulgulari'"));
-      expect(block, contains('visible: _staff'));
+      expect(block, contains('visible: anyCrewRole'));
+      expect(src, contains('bool anyCrewRole(Session s)'));
       expect(block, contains('FieldTestCrewScreen()'));
       expect(block, isNot(contains('countKey')));
       expect(block, isNot(contains("'/test-bulgulari/onay'")));

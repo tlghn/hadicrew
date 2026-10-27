@@ -125,7 +125,7 @@ class _CostAlertsScreenState extends State<CostAlertsScreen> {
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(28),
-                    child: Text('Maliyet uyarıları kapalı. Kurucu paneli › Hizmetler › Maliyet uyarıları ile aç.', textAlign: TextAlign.center, style: TextStyle(color: HadiColors.ink2)),
+                    child: Text('Maliyet uyarıları kapalı. Yönetim, Hizmetler › Maliyet uyarıları ile açabilir.', textAlign: TextAlign.center, style: TextStyle(color: HadiColors.ink2)),
                   ),
                 )
               : _body(),

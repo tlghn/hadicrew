@@ -2,20 +2,15 @@
 // Kurucu (01:51): "Crew sadece kullanıcının bulgu açıklamasını, ekran görüntüsünü (mümkünse) görmeli, ve bulguya eklenen notlar
 // görünmeli ama yapay zekâ ve claude yazıları olmadan. Başka hiçbir işlem yapamamalı."
 //
-// Sunucu: functions/src/field_test.ts › `feedback` › ftCrewList / ftCrewGet (yalnız kurucu/yönetici/moderatör). Yanıtta YALNIZCA
+// Sunucu: functions/src/field_test.ts › `feedback` › ftCrewList / ftCrewGet (Crew'a girebilen her rol: isCrewViewer). Yanıtta YALNIZCA
 // durum, açıklama (+ sesli not dökümü), ekran görüntüsü (10 dk imzalı adres; gizli ekranda yok) ve insan notları vardır — YZ ön
 // değerlendirmesi, Claude değerlendirmesi, kurucu onay/red kararı, test edenin kimliği, bağlam, derece, Akçe, rozet, zaman
-// çizelgesi sunucudan gelmez. Bu ekranda hiçbir işlem (durum, onay/red, not, silme, dışa aktarma) yoktur; tam yetki yalnız
-// Kurucu Paneli › Saha testi'nde (ana kurucuya bağlantı gösterilir).
+// çizelgesi sunucudan gelmez. Bu ekranda hiçbir işlem (durum, onay/red, not, silme, dışa aktarma) yoktur. Kurucu kuralı
+// (03:25): Crew yönetim tarafından habersizdir — başka bir panele bağlantı ya da atıf yok.
 import 'package:flutter/material.dart';
-import 'package:hadi/core/session.dart';
 import 'package:hadi/data/hadi_call.dart';
 import 'package:hadi/features/field_test/my_findings.dart' show kFtResolutionTr, ftChip, ftResolutionColor;
 import 'package:hadi/theme/hadi_colors.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-/// Kurucu Paneli › Saha testi (tam görünüm; yalnız ana kurucuya gösterilir).
-const kFounderFieldTestUrl = 'https://founder.hadisosyal.com/saha-testi';
 
 typedef FieldTestCrewLoader = Future<Map<String, Object?>> Function(String? id);
 
@@ -30,14 +25,10 @@ String _text(Map<String, Object?> x) {
 String _status(Map<String, Object?> x) => '${x['status'] ?? 'yeni'}';
 
 class FieldTestCrewScreen extends StatefulWidget {
-  const FieldTestCrewScreen({super.key, this.loader, this.showFounderLink});
+  const FieldTestCrewScreen({super.key, this.loader});
 
   @visibleForTesting
   final FieldTestCrewLoader? loader;
-
-  /// Testler için; null ise oturumdan (ana kurucu).
-  @visibleForTesting
-  final bool? showFounderLink;
 
   @override
   State<FieldTestCrewScreen> createState() => _FieldTestCrewScreenState();
@@ -71,7 +62,6 @@ class _FieldTestCrewScreenState extends State<FieldTestCrewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final founder = widget.showFounderLink ?? context.dependOnInheritedWidgetOfExactType<SessionScope>()?.notifier?.isPrimary ?? false;
     final items = _items;
     final shown = items == null ? null : [for (final x in items) if (_filter.isEmpty || _status(x) == _filter) x];
     final statuses = {for (final x in items ?? const <Map<String, Object?>>[]) _status(x)};
@@ -83,7 +73,7 @@ class _FieldTestCrewScreenState extends State<FieldTestCrewScreen> {
       body: RefreshIndicator(
         onRefresh: _reload,
         child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 32), children: [
-          _Banner(founder: founder),
+          const _Banner(),
           const SizedBox(height: 10),
           if (statuses.length > 1)
             Wrap(spacing: 6, runSpacing: 6, children: [
@@ -132,8 +122,7 @@ class _FieldTestCrewScreenState extends State<FieldTestCrewScreen> {
 }
 
 class _Banner extends StatelessWidget {
-  const _Banner({required this.founder});
-  final bool founder;
+  const _Banner();
 
   @override
   Widget build(BuildContext context) => Container(
@@ -146,14 +135,6 @@ class _Banner extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Salt okunur: bulgunun açıklaması, ekran görüntüsü, ekip notları ve durumu.',
                   style: TextStyle(color: HadiColors.ink2, fontSize: 13, height: 1.35)),
-              if (founder)
-                TextButton.icon(
-                  key: const ValueKey('ft-crew-founder-link'),
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-                  onPressed: () => launchUrl(Uri.parse(kFounderFieldTestUrl), mode: LaunchMode.externalApplication),
-                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                  label: const Text('Tam görünüm için Kurucu Paneli'),
-                ),
             ]),
           ),
         ]),

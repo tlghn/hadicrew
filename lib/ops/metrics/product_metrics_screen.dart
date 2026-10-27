@@ -86,7 +86,7 @@ class _ProductMetricsScreenState extends State<ProductMetricsScreen> {
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(28),
-                      child: Text('Ürün metrikleri kapalı. Kurucu paneli › Hizmetler › Ürün metrikleri ile aç.', textAlign: TextAlign.center, style: TextStyle(color: HadiColors.ink2)),
+                      child: Text('Ürün metrikleri kapalı. Yönetim, Hizmetler › Ürün metrikleri ile açabilir.', textAlign: TextAlign.center, style: TextStyle(color: HadiColors.ink2)),
                     ),
                   )
                 : _body(),

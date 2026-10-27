@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hadi/core/capabilities.dart';
 import 'package:hadi/core/session.dart';
+import 'package:hadi/core/view_as.dart' show ViewAs;
 
 import '../ops/admin/ai_security_admin.dart' show AiSecurityAdminTab;
 import '../ops/admin/ai_video_admin.dart' show AiVideoAdminTab;
@@ -107,6 +108,11 @@ bool _admin(Session s) => s.isAdmin;
 bool _staff(Session s) => s.isStaff;
 bool _cap(Session s, String cap) => s.isFounder || s.can(cap);
 
+/// Crew'a girebilen HER rol (kurucu, yönetici, moderatör ya da en az bir yetki veren rol: etkinlik sorumlusu, bakım ekibi,
+/// sohbet operatörü, destek ekibi…). Test hesabı ve "olarak gör" önizlemesi dışarıda. Sunucu: field_test.ts › isCrewViewer.
+bool anyCrewRole(Session s) =>
+    !s.isDummy && (s.isStaff || (!ViewAs.instance.active && Capabilities.instance.myRoles.any((r) => r.capabilities.isNotEmpty)));
+
 /// Bütün bölümler. Menüde sıra burada değil: kategoriler ve bölümler Türk alfabesine göre (panel_kit › groupByCategory).
 final List<CrewSection> kCrewSections = [
   CrewSection(
@@ -172,12 +178,12 @@ final List<CrewSection> kCrewSections = [
   ),
   // Test bulguları — SALT-OKUNUR (27 Ekim 2026, kurucu 01:51): yalnız açıklama (+ sesli not dökümü), ekran görüntüsü, ekip
   // (insan) notları ve durum; YZ / Claude yazıları, karar gerekçesi, kimlik, bağlam, derece, Akçe yok; hiçbir işlem yok.
-  // Sunucu: field_test.ts › ftCrewList / ftCrewGet (kurucu/yönetici/moderatör — Crew'un "ekip" rolleri; Destek talepleri ile
-  // aynı kapsam). Tam yetki ve onay bağlantıları (/test-bulgulari/onay) yalnız Kurucu Paneli › Saha testi'nde.
+  // Sunucu: field_test.ts › ftCrewList / ftCrewGet. Görünürlük (kurucu 03:23): Crew'a girebilen HER rol ([anyCrewRole]).
+  // Tam yetki ve onay bağlantıları (/test-bulgulari/onay) yalnız kurucu tarafında.
   CrewSection(
     id: 'test-bulgulari', title: 'Test bulguları', subtitle: 'Saha testi bulguları: açıklama, ekran görüntüsü, ekip notları (salt okunur)',
     icon: Icons.bug_report_rounded, group: CrewGroup.test,
-    visible: _staff, build: () => const FieldTestCrewScreen(), aliases: const ['/test-bulgulari'],
+    visible: anyCrewRole, build: () => const FieldTestCrewScreen(), aliases: const ['/test-bulgulari'],
     keys: 'saha testi bulgu hata bug ekran görüntüsü test ekibi not salt okunur',
   ),
   CrewSection(

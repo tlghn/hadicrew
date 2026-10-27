@@ -210,7 +210,7 @@ class _ShSettingsAdminTabState extends State<ShSettingsAdminTab> {
         if (cfg != null) ...[
           CrewCard(children: [
             CrewNote(_canEdit
-                ? 'Hizmeti açıp kapatmak için Kurucu Paneli › Hizmetler › "HADİ 2. El" (ilk durumu kapalı) ve alt anahtarlarını (kargo, elden, takas, bağış, öne çıkarma, Pro, grup pazarları, Aranıyor) kullan.'
+                ? 'Hizmeti açıp kapatmak için yönetim › Hizmetler › "HADİ 2. El" (ilk durumu kapalı) ve alt anahtarlarını (kargo, elden, takas, bağış, öne çıkarma, Pro, grup pazarları, Aranıyor) kullan.'
                 : 'Ayarları yalnızca kurucular değiştirebilir; burada görüntülüyorsun.'),
           ]),
           for (final g in _groups)

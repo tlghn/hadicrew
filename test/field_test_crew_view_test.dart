@@ -39,12 +39,12 @@ void main() {
   testWidgets('liste ve ayrıntı salt-okunur; yalnız izinli bilgiler', (t) async {
     await t.binding.setSurfaceSize(const Size(420, 900));
     addTearDown(() => t.binding.setSurfaceSize(null));
-    await t.pumpWidget(const MaterialApp(home: FieldTestCrewScreen(loader: _loader, showFounderLink: false)));
+    await t.pumpWidget(const MaterialApp(home: FieldTestCrewScreen(loader: _loader)));
     await t.pumpAndSettle();
     expect(find.text('Test bulguları'), findsOneWidget);
     expect(find.text('Kabul edildi'), findsOneWidget);
     expect(find.text('Katıl düğmesi çalışmıyor'), findsOneWidget);
-    expect(find.byKey(const ValueKey('ft-crew-founder-link')), findsNothing);
+    expect(find.textContaining('Kurucu Paneli'), findsNothing);
     _noLeaks();
     _noActions();
     await t.tap(find.byKey(const ValueKey('ft-crew-ftabc123XYZ_0001')));
@@ -56,12 +56,5 @@ void main() {
     expect(find.text('İnsan notu: tekrar ettim'), findsOneWidget);
     _noLeaks();
     _noActions();
-  });
-
-  testWidgets('ana kurucuya "Tam görünüm için Kurucu Paneli" bağlantısı', (t) async {
-    await t.pumpWidget(const MaterialApp(home: FieldTestCrewScreen(loader: _loader, showFounderLink: true)));
-    await t.pumpAndSettle();
-    expect(find.byKey(const ValueKey('ft-crew-founder-link')), findsOneWidget);
-    expect(find.text('Tam görünüm için Kurucu Paneli'), findsOneWidget);
   });
 }
