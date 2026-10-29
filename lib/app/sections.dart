@@ -45,6 +45,7 @@ import 'package:hadi/core/service_switches.dart' show ServiceSwitches;
 import '../ops/pro/pro_admin.dart' show ProLicenseAdminTab, canReviewPro;
 import 'package:hadi/features/creator_subs/creator_subs_admin.dart' show CreatorReviewQueueTab;
 import '../ops/support/support_admin.dart' show SupportTicketsScreen;
+import '../ops/special_days/special_days_admin.dart' show SpecialDaysAdminScreen;
 import '../panel_kit/panel_search.dart' show PanelEntry;
 import 'channels_admin.dart' show ChannelsAdminScreen;
 import 'crew_api.dart' show CrewDash;
@@ -345,6 +346,12 @@ final List<CrewSection> kCrewSections = [
     id: 'bildirim-onaylari', title: 'Bildirim onayları', subtitle: 'İkinci onay bekleyen gönderimler (dört göz)', icon: Icons.how_to_reg_rounded, group: CrewGroup.iletisim,
     visible: canNotifyApprove, build: () => const NotifyStudioScreen(initialTab: 1), countKeys: const ['notifyApprovals'], aliases: const ['/bildirim-onaylari'], queue: true,
     keys: 'bildirim onay dört göz ikinci onay kampanya',
+  ),
+  // Özel günler (29 Ekim 2026): yapay zekâ günü tasarlar, kurucu/yönetici tek tuşla uygular (ops/special_days; sunucu specialDay).
+  CrewSection(
+    id: 'ozel-gunler', title: 'Özel günler', subtitle: 'Bayram, anma, kutlama: yapay zekâ tasarlasın, tek tuşla uygula', icon: Icons.celebration_rounded, group: CrewGroup.iletisim,
+    visible: _admin, build: () => const SpecialDaysAdminScreen(),
+    keys: 'özel gün bayram kutlama tema bayrak 29 ekim anma cumhuriyet yapay zeka tasarla karşılama',
   ),
   CrewSection(
     id: 'kanallar', title: 'Kanallar', subtitle: 'Kanal ve grup kur, düzenle, duyuru gönder', icon: Icons.tag_rounded, group: CrewGroup.iletisim,
