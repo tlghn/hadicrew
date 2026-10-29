@@ -237,15 +237,20 @@ class _SpecialDaysAdminScreenState extends State<SpecialDaysAdminScreen> {
     );
   }
 
+  // Diğer Crew bölümleri gibi kendi Scaffold'u (29 Ekim 2026: zeminsiz listede metin Material'sız çiziliyordu).
   @override
-  Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Özel günler'), actions: [
+          IconButton(tooltip: 'Yenile', onPressed: _loading || _busy ? null : _load, icon: const Icon(Icons.refresh_rounded)),
+        ]),
+        body: _loading ? const Center(child: CircularProgressIndicator()) : _body(context),
+      );
+
+  Widget _body(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 120), children: [
-      Text('Özel günler', style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-      const SizedBox(height: 4),
-      const Text('Günü yapay zekâya ver, 3 konsept tasarlasın; beğendiğini tek tuşla uygula. Üyeler açılışta kutlamayla karşılanır, '
-          'bayrak dalgalanır, üst çubukta rozet ve altında günün şeridi görünür.'),
+      Text('Günü yapay zekâya ver, 3 konsept tasarlasın; beğendiğini tek tuşla uygula. Üyeler açılışta kutlamayla karşılanır, '
+          'bayrak dalgalanır, üst çubukta rozet ve altında günün şeridi görünür.', style: text.bodyMedium?.copyWith(color: HadiColors.ink3)),
       const SizedBox(height: 12),
       _statusCard(),
       const SizedBox(height: 12),
