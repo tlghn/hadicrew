@@ -23,6 +23,7 @@ import '../ops/metrics/product_metrics_screen.dart' show ProductMetricsScreen;
 import '../ops/moderation/content_hide_staff.dart' show HiddenContentScreen, canHideContent;
 import '../ops/moderation/mod_center_screen.dart' show ModCenterScreen;
 import 'package:hadi/features/ai_label/ai_label_admin.dart' show AiLabelReviewScreen, kAiLabelCountKey;
+import 'package:hadi/features/ads/ad_appeals_admin.dart' show AdAppealsAdminScreen;
 import '../ops/store/store_admin_common.dart' show canManageStore;
 import '../ops/store/store_orders_admin.dart' show StoreOrdersAdminTab;
 import '../ops/store/store_products_admin.dart' show StoreProductsAdminTab;
@@ -178,6 +179,12 @@ final List<CrewSection> kCrewSections = [
     id: 'yz-icerigi', title: 'Yapay Zeka İçeriği', subtitle: 'Tespitler, itirazlar ve etiket kaldırma onayları', icon: Icons.smart_toy_rounded, group: CrewGroup.moderasyon,
     visible: canHideContent, build: () => const AiLabelReviewScreen(), countKeys: const [kAiLabelCountKey], aliases: const ['/yz-icerigi'], queue: true,
     keys: 'yapay zeka içeriği etiket ai tespit itiraz kaldırma onay dört göz c2pa',
+  ),
+  // Reklam etiketi itirazları (30 Ekim 2026; sunucu ads › adAppeals / adTagSet, yalnızca kurucu ve yönetici).
+  CrewSection(
+    id: 'reklam-itirazlari', title: 'Reklam etiketi itirazları', subtitle: '#reklam / #işbirliği etiketine itirazlar', icon: Icons.campaign_rounded, group: CrewGroup.moderasyon,
+    visible: _admin, build: () => const AdAppealsAdminScreen(), aliases: const ['/reklam-itirazlari'],
+    keys: 'reklam işbirliği etiket itiraz sponsorlu yapay zeka gönderi',
   ),
   CrewSection(
     id: 'ai-guvenligi', title: 'AI güvenliği', subtitle: 'Yapay zekâ manipülasyon girişimleri', icon: Icons.security_rounded, group: CrewGroup.guvenlik,
