@@ -49,6 +49,9 @@ import 'package:hadi/features/creator_subs/creator_subs_admin.dart' show Creator
 import '../ops/support/support_admin.dart' show SupportTicketsScreen;
 import '../ops/special_days/special_days_admin.dart' show SpecialDaysAdminScreen;
 import '../panel_kit/panel_search.dart' show PanelEntry;
+import 'package:hadi/features/staff_perf/staff_goals_screen.dart' show StaffGoalsScreen;
+import 'package:hadi/features/staff_perf/staff_perf_screen.dart' show StaffPerfScreen;
+import 'package:hadi/features/staff_perf/usage_map_screen.dart' show UsageMapScreen;
 import 'channels_admin.dart' show ChannelsAdminScreen;
 import 'crew_api.dart' show CrewDash;
 import 'crew_counts.dart' show queueTotalOf, sumCounts;
@@ -387,6 +390,23 @@ final List<CrewSection> kCrewSections = [
     id: 'urun', title: 'Ürün metrikleri', subtitle: 'DAU/WAU/MAU, tutunma, huni', icon: Icons.ssid_chart_rounded, group: CrewGroup.rapor,
     visible: (s) => s.isPrimary, build: () => const ProductMetricsScreen(),
     keys: 'ürün metrik dau wau mau tutunma retention huni aktif kullanıcı',
+  ),
+  // Ekip katkısı (3 Kasım 2026; staff_perf.ts): ana kurucu bütün ekibi ve adayları, diğer ekip üyeleri yalnız kendi kartını görür.
+  CrewSection(
+    id: 'ekip-katkisi', title: 'Ekip katkısı', subtitle: 'Aktiflik, katkı, hedefler, yatkınlık ve eğitim', icon: Icons.insights_rounded, group: CrewGroup.rapor,
+    visible: _staff, build: () => const StaffPerfScreen(embedded: true), pinned: true,
+    keys: 'ekip katkı performans metrik puan hedef yönetici kurucu moderatör online aktif sohbet contribution yatkınlık eğitim aday',
+  ),
+  CrewSection(
+    id: 'ekip-hedefleri', title: 'Ekip hedefleri', subtitle: 'Rol ve kişi hedefleri, yönetici adayları', icon: Icons.flag_rounded, group: CrewGroup.rapor,
+    visible: (s) => s.isPrimary, build: () => const StaffGoalsScreen(embedded: true),
+    keys: 'ekip hedef hedefler performans yönetici adayı aday ekle eşik gözlem',
+  ),
+  // Kullanım haritası (anonim, bütün üyeler): en çok kullanılan alanlar ve öne çıkarma önerileri (yapay zekâ dahil).
+  CrewSection(
+    id: 'kullanim-haritasi', title: 'Kullanım haritası', subtitle: 'Uygulamanın en çok kullanılan yerleri ve öneriler', icon: Icons.map_rounded, group: CrewGroup.rapor,
+    visible: (s) => s.isFounder || s.can('analytics.view'), build: () => const UsageMapScreen(embedded: true),
+    keys: 'kullanım haritası en çok kullanılan ekran alan sekme ısı anonim öneri öne çıkar yapay zeka analiz',
   ),
   CrewSection(
     id: 'maliyet', title: 'Maliyet uyarıları', subtitle: 'Günlük bulut ve yapay zekâ maliyeti', icon: Icons.savings_rounded, group: CrewGroup.rapor,

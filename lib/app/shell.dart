@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hadi/features/staff_perf/staff_perf_api.dart' show PanelPerfPing;
 import 'package:go_router/go_router.dart';
 import 'package:hadi/core/session.dart';
 import 'package:hadi/panel_ui/crew_ui.dart' show crewCanvas, crewCardColor;
@@ -72,6 +73,8 @@ class CrewShell extends StatelessWidget {
       c.ensureStarted(s.uid, () => CrewApi.counts(s.services));
       if (wasRunning && _lastShown != shown) c.refreshSoon(Duration.zero);
       _lastShown = shown;
+      // Ekip katkısı: panelde geçen süre ve bölüm (dakikada bir; ölçülmeyen kişide kendiliğinden durur).
+      PanelPerfPing.instance.at('crew', shown);
     });
     // Son kullanılanlar (bu cihazda, son 5) ve menüde kategorisi açık olsun.
     if (section != null && section!.id != 'pano') {
