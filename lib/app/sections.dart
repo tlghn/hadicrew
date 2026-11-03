@@ -49,7 +49,6 @@ import 'package:hadi/features/creator_subs/creator_subs_admin.dart' show Creator
 import '../ops/support/support_admin.dart' show SupportTicketsScreen;
 import '../ops/special_days/special_days_admin.dart' show SpecialDaysAdminScreen;
 import '../panel_kit/panel_search.dart' show PanelEntry;
-import 'package:hadi/features/staff_perf/staff_goals_screen.dart' show StaffGoalsScreen;
 import 'package:hadi/features/staff_perf/staff_perf_screen.dart' show StaffPerfScreen;
 import 'package:hadi/features/staff_perf/usage_map_screen.dart' show UsageMapScreen;
 import 'channels_admin.dart' show ChannelsAdminScreen;
@@ -391,16 +390,12 @@ final List<CrewSection> kCrewSections = [
     visible: (s) => s.isPrimary, build: () => const ProductMetricsScreen(),
     keys: 'ürün metrik dau wau mau tutunma retention huni aktif kullanıcı',
   ),
-  // Ekip katkısı (3 Kasım 2026; staff_perf.ts): ana kurucu bütün ekibi ve adayları, diğer ekip üyeleri yalnız kendi kartını görür.
+  // Ekip katkısı (3 Kasım 2026; staff_perf.ts): bütün ekip herkesin metriklerini görür (kurucu: birbirini teşvik etsin).
+  // Hedefler ve adaylar YALNIZ Kurucu Paneli'nde (ana kurucu); Crew'da hedef düzenleme yok.
   CrewSection(
     id: 'ekip-katkisi', title: 'Ekip katkısı', subtitle: 'Aktiflik, katkı, hedefler, yatkınlık ve eğitim', icon: Icons.insights_rounded, group: CrewGroup.rapor,
-    visible: _staff, build: () => const StaffPerfScreen(embedded: true), pinned: true,
+    visible: _staff, build: () => const StaffPerfScreen(embedded: true, goals: false), pinned: true,
     keys: 'ekip katkı performans metrik puan hedef yönetici kurucu moderatör online aktif sohbet contribution yatkınlık eğitim aday',
-  ),
-  CrewSection(
-    id: 'ekip-hedefleri', title: 'Ekip hedefleri', subtitle: 'Rol ve kişi hedefleri, yönetici adayları', icon: Icons.flag_rounded, group: CrewGroup.rapor,
-    visible: (s) => s.isPrimary, build: () => const StaffGoalsScreen(embedded: true),
-    keys: 'ekip hedef hedefler performans yönetici adayı aday ekle eşik gözlem',
   ),
   // Kullanım haritası (anonim, bütün üyeler): en çok kullanılan alanlar ve öne çıkarma önerileri (yapay zekâ dahil).
   CrewSection(
