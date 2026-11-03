@@ -618,12 +618,18 @@ class _Header extends StatelessWidget {
             ],
             const SizedBox(height: 6),
             Wrap(spacing: 6, runSpacing: 4, children: [
+              if (a.evasion != null) const _Tag('🚩 Olası engel kaçağı', HadiColors.pink),
               if (a.hasReferral) _Tag('Referans: ${a.referral}', HadiColors.dostluk),
               if (!a.identityVerified) const _Tag('Kimlik doğrulanmadı', HadiColors.heyecan),
             ]),
           ]),
         ),
       ]),
+      // Olası engel kaçağı (compliance.ts › blockedPhoneMatch): otomatik ret yok, karar ekipte.
+      if (a.evasion != null) ...[
+        const SizedBox(height: 12),
+        InfoNote(icon: Icons.flag_rounded, color: HadiColors.pink, text: '${a.evasion} Onaylamadan önce kontrol et; silinen hesabın ayrıntısını ana kurucu görebilir.'),
+      ],
       if (!a.identityVerified) ...[
         const SizedBox(height: 12),
         const InfoNote(
