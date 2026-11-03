@@ -13,6 +13,7 @@ import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/theme/hadi_palette.dart' show PaletteScope;
 import 'package:hadi/theme/hadi_theme.dart';
 import 'package:hadi/widgets/hadi_notice.dart';
+import 'package:hadi/widgets/share_result.dart' show appNavigatorKey;
 import 'package:hadi/panel_ui/crew_theme.dart' show CrewThemeScope;
 
 import 'events_admin.dart' show EventCreatedPage;
@@ -34,6 +35,9 @@ class _CrewAppState extends State<CrewApp> {
   late final Session _session = Session(widget.services);
 
   late final GoRouter _router = GoRouter(
+    // Kök gezgin: paylaşılan kodun genel pencereleri (ör. kişisel veri erişim gerekçesi, hadi/widgets/access_reason.dart)
+    // bu anahtarla açılır; bağlı değilse pencere açılamaz ve çağrı "gerekçe girilmedi" ile düşer.
+    navigatorKey: appNavigatorKey,
     // Pencere / alt sayfa açıkken tarayıcının geri tuşu önce onu kapatır (hadi/core/web_url.dart).
     observers: [UiGateObserver(), WebPopupBackObserver()],
     refreshListenable: _session,

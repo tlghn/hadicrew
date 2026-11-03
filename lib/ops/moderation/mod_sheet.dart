@@ -30,6 +30,10 @@ class _ModSheetState extends State<_ModSheet> {
   Map<String, dynamic>? _d;
   String? _error;
   bool _busy = false;
+  /// Erişim gerekçesi girilmedi (Verime erişim günlüğü; ana kurucu dışındaki yetkililer, ör. geçici kurucu): kişisel veri
+  /// (geçmiş, profil içeriği) kapalı; kişisel veri gerektirmeyen uyarı yine verilebilir. Gerekçe aynı üye için 30 dk
+  /// sunucuda geçerlidir: "Son açılanlar"dan yeniden açınca yeniden sorulmaz.
+  bool _skipped = false;
 
   @override
   void initState() {
@@ -39,11 +43,27 @@ class _ModSheetState extends State<_ModSheet> {
 
   Future<void> _load() async {
     try {
+      // Gerekçe gerekiyorsa sunucu reddeder, kök gezginde gerekçe penceresi açılır (hadi › data/callables.dart).
       final d = await ModApi.call('status', {'uid': widget.uid});
-      if (mounted) setState(() => _d = d);
+      if (!mounted) return;
+      setState(() {
+        _d = d;
+        _skipped = false;
+        _error = null;
+      });
+    } on AccessReasonSkipped {
+      if (mounted) setState(() => _skipped = true);
     } on AppFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     }
+  }
+
+  void _retry() {
+    setState(() {
+      _skipped = false;
+      _error = null;
+    });
+    _load();
   }
 
   void _toast(String m) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(m)));
@@ -54,7 +74,8 @@ class _ModSheetState extends State<_ModSheet> {
       await ModApi.call(op, {'uid': widget.uid, ...data});
       HapticFeedback.mediumImpact();
       _toast(done);
-      await _load();
+      // Gerekçesiz görünümde yeniden yükleme gerekçe penceresini yeniden açardı.
+      if (!_skipped) await _load();
     } on AppFailure catch (e) {
       _toast(e.message);
     } finally {
@@ -173,6 +194,7 @@ class _ModSheetState extends State<_ModSheet> {
   @override
   Widget build(BuildContext context) {
     final d = _d;
+    if (_skipped) return _limited();
     if (_error != null) {
       return Padding(padding: const EdgeInsets.all(24), child: Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: HadiColors.text(HadiColors.error))));
     }
@@ -278,6 +300,35 @@ class _ModSheetState extends State<_ModSheet> {
       ]),
     );
   }
+
+  /// Gerekçe girilmedi: kişisel veri olmadan yapılabilen işlemler + gerekçe girip tam görünümü açma.
+  Widget _limited() => AbsorbPointer(
+        absorbing: _busy,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+            child: Row(children: [
+              const Icon(Icons.shield_moon_outlined, color: HadiColors.iletisim),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Moderasyon · ${widget.name}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+              ),
+              if (_busy) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Text(
+              'Gerekçe girmediğin için üyenin kişisel verisi (moderasyon geçmişi, bloke durumu, profil içeriği) açılmadı. '
+              'Uyarı verebilirsin; diğer işlemler için gerekçe gir.',
+              style: TextStyle(color: HadiColors.ink2, height: 1.35),
+            ),
+          ),
+          _Action(icon: Icons.privacy_tip_outlined, color: HadiColors.aktivite, title: 'Gerekçe gir ve aç', sub: 'Amaç + kısa gerekçe; bu üye için 30 dk geçerli', onTap: _retry),
+          _Action(icon: Icons.warning_amber_rounded, color: HadiColors.heyecan, title: 'Uyarı ver', sub: 'Yalnızca üye kendi profilinde görür; bildirim gider.', onTap: _warn),
+          SizedBox(height: 8 + MediaQuery.paddingOf(context).bottom),
+        ]),
+      );
 }
 
 class _Chip extends StatelessWidget {
