@@ -7,6 +7,7 @@ import 'package:hadi/panel_ui/crew_ui.dart' show crewCanvas, crewCardColor;
 import 'package:hadi/theme/hadi_colors.dart';
 import 'package:hadi/widgets/instant.dart' show InlineError;
 
+import 'all_members.dart';
 import 'charts.dart';
 import 'crew_api.dart';
 import 'crew_counts.dart';
@@ -199,6 +200,9 @@ class _Body extends StatelessWidget {
           Text('Günlük toplamlar her gece hesaplanır; bugün kısmidir. Kişi düzeyinde veri gösterilmez.',
               style: text.bodySmall?.copyWith(color: HadiColors.ink3)),
         ],
+        // Tüm üyeler: toplam + sayfalı liste (yalnız fotoğraf, ad, kullanıcı adı; all_members.dart).
+        const SizedBox(height: 26),
+        const AllMembersSection(key: ValueKey('allMembers')),
       ],
     );
   }

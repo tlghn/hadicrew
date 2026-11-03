@@ -62,7 +62,69 @@ class CrewSeries {
   }
 }
 
+/// Pano › Tüm üyeler satırı (functions/src/crew_members.ts): YALNIZCA fotoğraf, görünen ad ve kullanıcı adı.
+class CrewMember {
+  const CrewMember({required this.uid, required this.name, this.handle, this.photo});
+  final String uid;
+
+  /// Herkese görünen ad (rumuz kuralı; gerçek ad gizliyse @kullanıcıadı).
+  final String name;
+  final String? handle;
+  final String? photo;
+
+  static CrewMember fromMap(Map<String, dynamic> m) {
+    String? s(Object? v) => v is String && v.trim().isNotEmpty ? v.trim() : null;
+    return CrewMember(uid: '${m['uid'] ?? ''}', name: s(m['name']) ?? 'Üye', handle: s(m['handle']), photo: s(m['photo']));
+  }
+}
+
+/// Bir sayfa üye. [total] yalnız ilk sayfada gelir; [cursor] null ise liste bitti.
+class CrewMembersPage {
+  const CrewMembersPage({required this.items, this.total, this.cursor});
+  final List<CrewMember> items;
+  final int? total;
+  final Map<String, Object?>? cursor;
+  bool get done => cursor == null;
+
+  static CrewMembersPage fromMap(Map<String, dynamic> m) {
+    final c = m['cursor'];
+    return CrewMembersPage(
+      items: [for (final x in (m['items'] as List? ?? const [])) if (x is Map) CrewMember.fromMap(Map<String, dynamic>.from(x))],
+      total: m['total'] is num ? (m['total'] as num).toInt() : null,
+      cursor: m['done'] == true || c is! Map ? null : Map<String, Object?>.from(c),
+    );
+  }
+}
+
 abstract final class CrewApi {
+  /// Pano › Tüm üyeler: toplam + 30'luk sayfalar (sort: new | old) ya da arama ([q]; en çok 20 sonuç, sayfa yok).
+  static Future<CrewMembersPage> members(Services services, {String sort = 'new', Map<String, Object?>? cursor, String? q}) async {
+    if (services.isDemo) return _demoMembers(sort, cursor, q);
+    return CrewMembersPage.fromMap(await OpsApi.call('crewDash', 'members', {
+      'sort': sort,
+      'cursor': ?cursor,
+      if (q != null && q.trim().isNotEmpty) 'q': q.trim(),
+    }));
+  }
+
+  static CrewMembersPage _demoMembers(String sort, Map<String, Object?>? cursor, String? q) {
+    const first = ['Ayşe', 'Mehmet', 'Zeynep', 'Can', 'Elif', 'Burak', 'Deniz', 'Selin', 'Emre', 'Ece'];
+    const last = ['Yılmaz', 'Kaya', 'Demir', 'Şahin', 'Çelik', 'Aydın'];
+    const total = 1284;
+    final all = [
+      for (var i = 0; i < total; i++)
+        CrewMember(uid: 'demo$i', name: '${first[i % first.length]} ${last[i % last.length]}', handle: '${first[i % first.length].toLowerCase()}$i'),
+    ];
+    final list = sort == 'old' ? all : all.reversed.toList();
+    if (q != null && q.trim().length >= 2) {
+      final k = q.trim().replaceFirst('@', '').toLowerCase();
+      return CrewMembersPage(items: list.where((m) => m.name.toLowerCase().contains(k) || (m.handle ?? '').startsWith(k)).take(20).toList(), total: total);
+    }
+    final start = cursor == null ? 0 : (cursor['i'] as int? ?? 0);
+    final end = math.min(start + 30, list.length);
+    return CrewMembersPage(items: list.sublist(start, end), total: cursor == null ? total : null, cursor: end < list.length ? {'i': end} : null);
+  }
+
   static Future<CrewDash> dash(Services services, {int days = 30}) async {
     if (services.isDemo) return _demo(days);
     return CrewDash.fromMap(await OpsApi.call('crewDash', 'dash', {'days': days}));
