@@ -1,3 +1,4 @@
+import '../ops/events/event_passes_admin.dart' show EventPassesAdminScreen;
 import 'package:flutter/material.dart';
 import 'package:hadi/core/capabilities.dart';
 import 'package:hadi/core/session.dart';
@@ -342,6 +343,13 @@ final List<CrewSection> kCrewSections = [
     id: 'uye-etkinlikleri', title: 'Üye etkinlikleri', subtitle: 'Onay bekleyen öneriler ve taslaklar', icon: Icons.fact_check_rounded, group: CrewGroup.etkinlik,
     visible: _admin, build: () => const MemberEventsAdminScreen(), aliases: const ['/yonetim/uye-etkinlikleri'],
     keys: 'üye etkinliği öneri taslak onay',
+  ),
+  // Geçiş biletleri (3 Kasım 2026; sunucu event_passes.ts › passList): kurucunun verdiği tek kullanımlık biletler, kullanılanların takibi.
+  // Bilet verme yalnızca Kurucu Paneli › Geçiş biletleri'nde (ana kurucu).
+  CrewSection(
+    id: 'gecis-biletleri', title: 'Geçiş biletleri', subtitle: 'Kurucunun verdiği biletler: kim, hangi etkinlik, ne zaman kullandı', icon: Icons.confirmation_number_rounded,
+    group: CrewGroup.etkinlik, visible: _staff, build: () => const EventPassesAdminScreen(),
+    keys: 'geçiş bileti bilet ücretsiz davetiye kullanılan tek kullanımlık kurucu bileti katılım',
   ),
   // Bildirim Stüdyosu (notify.send / notify.approve / kurucu). Onay bildirimi bağlantısı: crewLink("/b/bildirim-onaylari").
   CrewSection(
