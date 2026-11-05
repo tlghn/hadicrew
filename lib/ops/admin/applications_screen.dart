@@ -619,6 +619,7 @@ class _Header extends StatelessWidget {
             const SizedBox(height: 6),
             Wrap(spacing: 6, runSpacing: 4, children: [
               if (a.evasion != null) const _Tag('🚩 Olası engel kaçağı', HadiColors.pink),
+              if (a.guestOf != null) _Tag(a.guestDraft ? '🎟️ Misafir: formu tamamlamadı' : '🎟️ Misafir', HadiColors.dostluk),
               if (a.hasReferral) _Tag('Referans: ${a.referral}', HadiColors.dostluk),
               if (!a.identityVerified) const _Tag('Kimlik doğrulanmadı', HadiColors.heyecan),
             ]),
@@ -626,6 +627,10 @@ class _Header extends StatelessWidget {
         ),
       ]),
       // Olası engel kaçağı (compliance.ts › blockedPhoneMatch): otomatik ret yok, karar ekipte.
+      if (a.guestOf != null) ...[
+        const SizedBox(height: 10),
+        InfoNote(icon: Icons.confirmation_number_outlined, color: HadiColors.dostluk, text: '${a.guestOf}.${a.guestDraft ? ' Kişi formu tamamlayıp onayları vermeden başvuru onaylanamaz.' : ''} Ret bilet bedelini alan üyeye iade eder.'),
+      ],
       if (a.evasion != null) ...[
         const SizedBox(height: 12),
         InfoNote(icon: Icons.flag_rounded, color: HadiColors.pink, text: '${a.evasion} Onaylamadan önce kontrol et; silinen hesabın ayrıntısını ana kurucu görebilir.'),
