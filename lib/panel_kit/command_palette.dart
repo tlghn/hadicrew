@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'panel_ai.dart';
 import 'panel_prefs.dart';
 import 'panel_search.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 bool _paletteOpen = false;
 
@@ -29,11 +30,11 @@ Future<String?> showPanelPalette(
   _paletteOpen = true;
   HapticFeedback.selectionClick();
   try {
-    return await showDialog<String>(
+    return await uiOnce(context, () => showDialog<String>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: .38),
       builder: (_) => PanelPalette(entries: entries, prefs: prefs, askAi: askAi, initialQuery: initialQuery),
-    );
+    ));
   } finally {
     _paletteOpen = false;
   }

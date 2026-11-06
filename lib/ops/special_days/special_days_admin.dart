@@ -168,7 +168,7 @@ class _SpecialDaysAdminScreenState extends State<SpecialDaysAdminScreen> {
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final p = _date.split('-').map(int.parse).toList();
-    final d = await showDatePicker(context: context, initialDate: DateTime(p[0], p[1], p[2]), firstDate: DateTime(now.year, now.month, now.day), lastDate: now.add(const Duration(days: 400)));
+    final d = await uiOnce(context, () => showDatePicker(context: context, initialDate: DateTime(p[0], p[1], p[2]), firstDate: DateTime(now.year, now.month, now.day), lastDate: now.add(const Duration(days: 400))));
     if (d != null) setState(() => _date = _ymd(d));
   }
 
@@ -547,7 +547,7 @@ class _ColorChip extends StatelessWidget {
         avatar: CircleAvatar(backgroundColor: color, radius: 9),
         label: Text(label),
         onPressed: () async {
-          final c = await showDialog<Color>(
+          final c = await uiOnce(context, () => showDialog<Color>(
             context: context,
             builder: (d) => AlertDialog(
               title: Text(label),
@@ -560,7 +560,7 @@ class _ColorChip extends StatelessWidget {
                   ),
               ]),
             ),
-          );
+          ));
           if (c != null) onPick(c);
         },
       );

@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:hadi/data/hadi_call.dart';
 import 'package:hadi/features/field_test/my_findings.dart' show kFtResolutionTr, ftChip, ftResolutionColor;
 import 'package:hadi/theme/hadi_colors.dart';
+import 'package:hadi/core/ui_gate.dart';
 
 typedef FieldTestCrewLoader = Future<Map<String, Object?>> Function(String? id);
 
@@ -202,14 +203,14 @@ class _FieldTestCrewDetailState extends State<FieldTestCrewDetail> {
                       alignment: Alignment.centerLeft,
                       child: GestureDetector(
                         key: const ValueKey('ft-crew-shot'),
-                        onTap: () => showDialog<void>(
+                        onTap: () => uiOnce(context, () => showDialog<void>(
                           context: context,
                           builder: (c) => Dialog(
                             insetPadding: const EdgeInsets.all(12),
                             clipBehavior: Clip.antiAlias,
                             child: GestureDetector(onTap: () => Navigator.pop(c), child: InteractiveViewer(child: Image.network(_shotUrl!, fit: BoxFit.contain))),
                           ),
-                        ),
+                        )),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.network(_shotUrl!, width: 160, height: 290, fit: BoxFit.cover, errorBuilder: (_, _, _) => const SizedBox(width: 160, height: 290)),
